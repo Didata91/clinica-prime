@@ -460,6 +460,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       usuarios: {
         Row: {
           ativo: boolean
@@ -498,9 +519,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      can_access_client: {
+        Args: { client_uuid: string; user_uuid: string }
+        Returns: boolean
+      }
+      get_user_role: {
+        Args: { user_uuid: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          required_role: Database["public"]["Enums"]["app_role"]
+          user_uuid: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
+      app_role: "admin" | "recepcao" | "profissional" | "financeiro"
       categoria_servico_enum:
         | "toxina"
         | "preenchimento"
@@ -662,6 +698,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "recepcao", "profissional", "financeiro"],
       categoria_servico_enum: [
         "toxina",
         "preenchimento",
