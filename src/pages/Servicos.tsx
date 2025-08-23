@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Plus, Clock, DollarSign, AlertTriangle, CheckCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -15,6 +17,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -89,6 +92,18 @@ const categorias = ["Todas", "Toxina Botulínica", "Preenchimento", "Avaliação
 export default function Servicos() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategoria, setSelectedCategoria] = useState("Todas");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    nome: "",
+    categoria: "",
+    duracao: "",
+    preco: "",
+    exigeAvaliacao: false,
+    contraIndicacoes: "",
+    cuidadosPre: "",
+    cuidadosPos: ""
+  });
+  const { toast } = useToast();
   
   const filteredServicos = mockServicos.filter(servico => {
     const matchSearch = servico.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -104,6 +119,34 @@ export default function Servicos() {
     }).format(price);
   };
 
+  const handleSubmit = () => {
+    if (!formData.nome.trim() || !formData.categoria || !formData.duracao || !formData.preco) {
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    toast({
+      title: "Sucesso",
+      description: "Serviço cadastrado com sucesso!",
+    });
+    
+    setFormData({
+      nome: "",
+      categoria: "",
+      duracao: "",
+      preco: "",
+      exigeAvaliacao: false,
+      contraIndicacoes: "",
+      cuidadosPre: "",
+      cuidadosPos: ""
+    });
+    setIsDialogOpen(false);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -114,9 +157,9 @@ export default function Servicos() {
           </p>
         </div>
         
-        <Dialog>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button onClick={() => setIsDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Novo Serviço
             </Button>
@@ -124,39 +167,69 @@ export default function Servicos() {
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Cadastrar Novo Serviço</DialogTitle>
+              <DialogDescription>
+                Adicione um novo procedimento ao catálogo de serviços
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-6 py-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Nome do Serviço *</label>
-                  <Input placeholder="Ex: Botox 30U" />
+                  <Input 
+                    placeholder="Ex: Botox 30U"
+                    value={formData.nome}
+                    onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Categoria *</label>
-                  <select className="w-full p-2 border rounded-md">
+                  <select 
+                    className="w-full p-2 border rounded-md"
+                    value={formData.categoria}
+                    onChange={(e) => setFormData(prev => ({ ...prev, categoria: e.target.value }))}
+                  >
                     <option value="">Selecione uma categoria</option>
-                    <option value="toxina">Toxina Botulínica</option>
-                    <option value="preenchimento">Preenchimento</option>
-                    <option value="avaliacao">Avaliação</option>
-                    <option value="peeling">Peeling</option>
-                    <option value="skinbooster">Skinbooster</option>
+                    <option value="Toxina Botulínica">Toxina Botulínica</option>
+                    <option value="Preenchimento">Preenchimento</option>
+                    <option value="Avaliação">Avaliação</option>
+                    <option value="Peeling">Peeling</option>
+                    <option value="Skinbooster">Skinbooster</option>
                   </select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Duração (minutos) *</label>
-                  <Input type="number" placeholder="60" />
+                  <Input 
+                    type="number" 
+                    placeholder="60"
+                    value={formData.duracao}
+                    onChange={(e) => setFormData(prev => ({ ...prev, duracao: e.target.value }))}
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Preço Base (R$) *</label>
-                  <Input type="number" step="0.01" placeholder="500.00" />
+                  <Input 
+                    type="number" 
+                    step="0.01" 
+                    placeholder="500.00"
+                    value={formData.preco}
+                    onChange={(e) => setFormData(prev => ({ ...prev, preco: e.target.value }))}
+                  />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="flex items-center space-x-2">
-                  <input type="checkbox" className="rounded" />
-                  <span className="text-sm font-medium">Exige avaliação prévia</span>
-                </label>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="avaliacao-previa"
+                    checked={formData.exigeAvaliacao}
+                    onCheckedChange={(checked) => 
+                      setFormData(prev => ({ ...prev, exigeAvaliacao: checked as boolean }))
+                    }
+                  />
+                  <label htmlFor="avaliacao-previa" className="text-sm font-medium cursor-pointer">
+                    Exige avaliação prévia
+                  </label>
+                </div>
                 <p className="text-xs text-muted-foreground">
                   Marque se o procedimento requer uma consulta de avaliação antes do agendamento
                 </p>
@@ -168,6 +241,8 @@ export default function Servicos() {
                   <Textarea 
                     placeholder="Liste as principais contraindicações do procedimento..."
                     rows={3}
+                    value={formData.contraIndicacoes}
+                    onChange={(e) => setFormData(prev => ({ ...prev, contraIndicacoes: e.target.value }))}
                   />
                 </div>
 
@@ -176,6 +251,8 @@ export default function Servicos() {
                   <Textarea 
                     placeholder="Orientações para antes do procedimento..."
                     rows={3}
+                    value={formData.cuidadosPre}
+                    onChange={(e) => setFormData(prev => ({ ...prev, cuidadosPre: e.target.value }))}
                   />
                 </div>
 
@@ -184,13 +261,19 @@ export default function Servicos() {
                   <Textarea 
                     placeholder="Orientações para após o procedimento..."
                     rows={3}
+                    value={formData.cuidadosPos}
+                    onChange={(e) => setFormData(prev => ({ ...prev, cuidadosPos: e.target.value }))}
                   />
                 </div>
               </div>
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline">Cancelar</Button>
-              <Button>Salvar Serviço</Button>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSubmit}>
+                Salvar Serviço
+              </Button>
             </div>
           </DialogContent>
         </Dialog>

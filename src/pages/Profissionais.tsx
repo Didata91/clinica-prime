@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Plus, Mail, Phone, UserCheck, Clock, Calendar } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import {
   Table,
   TableBody,
@@ -15,10 +16,12 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const mockProfissionais = [
   {
@@ -71,12 +74,57 @@ const especialidadesDisponiveis = [
 
 export default function Profissionais() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    nome: "",
+    registro: "",
+    email: "",
+    telefone: "",
+    especialidades: [] as string[],
+    horarios: {}
+  });
+  const { toast } = useToast();
   
   const filteredProfissionais = mockProfissionais.filter(profissional =>
     profissional.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
     profissional.conselhoRegistro.toLowerCase().includes(searchTerm.toLowerCase()) ||
     profissional.especialidades.some(esp => esp.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  const handleEspecialidadeChange = (especialidade: string, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      especialidades: checked 
+        ? [...prev.especialidades, especialidade]
+        : prev.especialidades.filter(esp => esp !== especialidade)
+    }));
+  };
+
+  const handleSubmit = () => {
+    if (!formData.nome.trim()) {
+      toast({
+        title: "Erro",
+        description: "Nome é obrigatório",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    toast({
+      title: "Sucesso",
+      description: "Profissional cadastrado com sucesso!",
+    });
+    
+    setFormData({
+      nome: "",
+      registro: "",
+      email: "",
+      telefone: "",
+      especialidades: [],
+      horarios: {}
+    });
+    setIsDialogOpen(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -88,9 +136,9 @@ export default function Profissionais() {
           </p>
         </div>
         
-        <Dialog>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button onClick={() => setIsDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Novo Profissional
             </Button>
@@ -98,24 +146,44 @@ export default function Profissionais() {
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Cadastrar Novo Profissional</DialogTitle>
+              <DialogDescription>
+                Adicione um novo profissional à equipe médica
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-6 py-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Nome Completo *</label>
-                  <Input placeholder="Dr(a). Nome Completo" />
+                  <Input 
+                    placeholder="Dr(a). Nome Completo"
+                    value={formData.nome}
+                    onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Registro Conselho</label>
-                  <Input placeholder="CRM-SP 123456" />
+                  <Input 
+                    placeholder="CRM-SP 123456"
+                    value={formData.registro}
+                    onChange={(e) => setFormData(prev => ({ ...prev, registro: e.target.value }))}
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Email</label>
-                  <Input type="email" placeholder="email@clinica.com" />
+                  <Input 
+                    type="email" 
+                    placeholder="email@clinica.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Telefone</label>
-                  <Input placeholder="(11) 99999-9999" />
+                  <Input 
+                    placeholder="(11) 99999-9999"
+                    value={formData.telefone}
+                    onChange={(e) => setFormData(prev => ({ ...prev, telefone: e.target.value }))}
+                  />
                 </div>
               </div>
               
@@ -123,10 +191,18 @@ export default function Profissionais() {
                 <label className="text-sm font-medium">Especialidades</label>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                   {especialidadesDisponiveis.map(especialidade => (
-                    <label key={especialidade} className="flex items-center space-x-2">
-                      <input type="checkbox" className="rounded" />
-                      <span className="text-sm">{especialidade}</span>
-                    </label>
+                    <div key={especialidade} className="flex items-center space-x-2">
+                      <Checkbox 
+                        id={especialidade}
+                        checked={formData.especialidades.includes(especialidade)}
+                        onCheckedChange={(checked) => 
+                          handleEspecialidadeChange(especialidade, checked as boolean)
+                        }
+                      />
+                      <label htmlFor={especialidade} className="text-sm cursor-pointer">
+                        {especialidade}
+                      </label>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -150,8 +226,12 @@ export default function Profissionais() {
               </div>
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline">Cancelar</Button>
-              <Button>Salvar Profissional</Button>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSubmit}>
+                Salvar Profissional
+              </Button>
             </div>
           </DialogContent>
         </Dialog>

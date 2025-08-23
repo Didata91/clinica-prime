@@ -3,9 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight, Plus, Filter, Calendar as CalendarIcon } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -81,6 +83,16 @@ const getStatusColor = (status: string) => {
 export default function Agenda() {
   const [currentDate, setCurrentDate] = useState(new Date("2024-01-22"));
   const [selectedProfissional, setSelectedProfissional] = useState("Todas");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [agendamentoData, setAgendamentoData] = useState({
+    cliente: "",
+    servico: "",
+    profissional: "",
+    sala: "",
+    data: "",
+    horario: ""
+  });
+  const { toast } = useToast();
 
   const filteredAgendamentos = mockAgendamentos.filter(agendamento => {
     if (selectedProfissional === "Todas") return true;
@@ -109,9 +121,9 @@ export default function Agenda() {
           </p>
         </div>
         
-        <Dialog>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button onClick={() => setIsDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Novo Agendamento
             </Button>
@@ -119,6 +131,9 @@ export default function Agenda() {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Novo Agendamento</DialogTitle>
+              <DialogDescription>
+                Agende um novo atendimento para um cliente
+              </DialogDescription>
             </DialogHeader>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
               <div className="space-y-2">
@@ -161,8 +176,26 @@ export default function Agenda() {
               </div>
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline">Cancelar</Button>
-              <Button>Agendar</Button>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={() => {
+                if (!agendamentoData.cliente || !agendamentoData.servico || !agendamentoData.profissional) {
+                  toast({
+                    title: "Erro",
+                    description: "Preencha todos os campos obrigatórios",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                toast({
+                  title: "Sucesso", 
+                  description: "Agendamento criado com sucesso!"
+                });
+                setIsDialogOpen(false);
+              }}>
+                Agendar
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
