@@ -121,7 +121,25 @@ export default function Relatorios() {
             <option value="semestre">Semestre</option>
             <option value="ano">Este Ano</option>
           </select>
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => {
+            // Simular exportação
+            const dataStr = JSON.stringify({
+              periodo: periodoSelecionado,
+              financeiro: mockDadosFinanceiros,
+              operacional: mockDadosOperacionais,
+              exportadoEm: new Date().toISOString()
+            }, null, 2);
+            
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `relatorio-${periodoSelecionado}-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }}>
             <Download className="h-4 w-4 mr-2" />
             Exportar
           </Button>

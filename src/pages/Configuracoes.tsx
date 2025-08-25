@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Configuracoes() {
   const [configuracoes, setConfiguracoes] = useState({
@@ -71,7 +72,17 @@ export default function Configuracoes() {
     compactarInterface: false
   });
 
+  const { toast } = useToast();
+
   const handleSave = () => {
+    // Simular salvamento das configurações
+    setTimeout(() => {
+      toast({
+        title: "Configurações salvas",
+        description: "Todas as alterações foram salvas com sucesso!",
+      });
+    }, 500);
+    
     console.log("Configurações salvas:", configuracoes);
     // Aqui seria feita a chamada para salvar no backend
   };

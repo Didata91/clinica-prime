@@ -93,6 +93,8 @@ export default function Servicos() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategoria, setSelectedCategoria] = useState("Todas");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingServico, setEditingServico] = useState<any>(null);
+  const [servicos, setServicos] = useState(mockServicos);
   const [formData, setFormData] = useState({
     nome: "",
     categoria: "",
@@ -105,7 +107,7 @@ export default function Servicos() {
   });
   const { toast } = useToast();
   
-  const filteredServicos = mockServicos.filter(servico => {
+  const filteredServicos = servicos.filter(servico => {
     const matchSearch = servico.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
                        servico.categoria.toLowerCase().includes(searchTerm.toLowerCase());
     const matchCategoria = selectedCategoria === "Todas" || servico.categoria === selectedCategoria;
@@ -129,10 +131,32 @@ export default function Servicos() {
       return;
     }
     
-    toast({
-      title: "Sucesso",
-      description: "Serviço cadastrado com sucesso!",
-    });
+    const servicoData = {
+      id: editingServico ? editingServico.id : servicos.length + 1,
+      nome: formData.nome,
+      categoria: formData.categoria,
+      duracaoMinutos: parseInt(formData.duracao),
+      precoBase: parseFloat(formData.preco),
+      exigeAvaliacaoPrevia: formData.exigeAvaliacao,
+      ativo: true,
+      contraIndicacoes: formData.contraIndicacoes,
+      cuidadosPre: formData.cuidadosPre,
+      cuidadosPos: formData.cuidadosPos
+    };
+
+    if (editingServico) {
+      setServicos(servicos.map(s => s.id === editingServico.id ? servicoData : s));
+      toast({
+        title: "Sucesso",
+        description: "Serviço atualizado com sucesso!",
+      });
+    } else {
+      setServicos([...servicos, servicoData]);
+      toast({
+        title: "Sucesso",
+        description: "Serviço cadastrado com sucesso!",
+      });
+    }
     
     setFormData({
       nome: "",
@@ -144,7 +168,33 @@ export default function Servicos() {
       cuidadosPre: "",
       cuidadosPos: ""
     });
+    setEditingServico(null);
     setIsDialogOpen(false);
+  };
+
+  const handleEdit = (servico: any) => {
+    setEditingServico(servico);
+    setFormData({
+      nome: servico.nome,
+      categoria: servico.categoria,
+      duracao: servico.duracaoMinutos.toString(),
+      preco: servico.precoBase.toString(),
+      exigeAvaliacao: servico.exigeAvaliacaoPrevia,
+      contraIndicacoes: servico.contraIndicacoes || "",
+      cuidadosPre: servico.cuidadosPre || "",
+      cuidadosPos: servico.cuidadosPos || ""
+    });
+    setIsDialogOpen(true);
+  };
+
+  const toggleServicoStatus = (servicoId: number) => {
+    setServicos(servicos.map(s => 
+      s.id === servicoId ? { ...s, ativo: !s.ativo } : s
+    ));
+    toast({
+      title: "Status atualizado",
+      description: "Status do serviço foi alterado com sucesso!",
+    });
   };
 
   return (
@@ -166,9 +216,9 @@ export default function Servicos() {
           </DialogTrigger>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Cadastrar Novo Serviço</DialogTitle>
+              <DialogTitle>{editingServico ? "Editar Serviço" : "Cadastrar Novo Serviço"}</DialogTitle>
               <DialogDescription>
-                Adicione um novo procedimento ao catálogo de serviços
+                {editingServico ? "Atualize as informações do serviço" : "Adicione um novo procedimento ao catálogo de serviços"}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-6 py-4">
@@ -268,11 +318,24 @@ export default function Servicos() {
               </div>
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <Button variant="outline" onClick={() => {
+                setIsDialogOpen(false);
+                setEditingServico(null);
+                setFormData({
+                  nome: "",
+                  categoria: "",
+                  duracao: "",
+                  preco: "",
+                  exigeAvaliacao: false,
+                  contraIndicacoes: "",
+                  cuidadosPre: "",
+                  cuidadosPos: ""
+                });
+              }}>
                 Cancelar
               </Button>
               <Button onClick={handleSubmit}>
-                Salvar Serviço
+                {editingServico ? "Atualizar Serviço" : "Salvar Serviço"}
               </Button>
             </div>
           </DialogContent>
@@ -362,10 +425,10 @@ export default function Servicos() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" onClick={() => handleEdit(servico)}>
                           Editar
                         </Button>
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => toggleServicoStatus(servico.id)}>
                           {servico.ativo ? "Desativar" : "Ativar"}
                         </Button>
                       </div>
@@ -421,11 +484,11 @@ export default function Servicos() {
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  <Button variant="outline" size="sm" className="flex-1">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEdit(servico)}>
                     Editar
                   </Button>
-                  <Button variant="ghost" size="sm">
-                    Detalhes
+                  <Button variant="ghost" size="sm" onClick={() => toggleServicoStatus(servico.id)}>
+                    {servico.ativo ? "Desativar" : "Ativar"}
                   </Button>
                 </div>
               </div>

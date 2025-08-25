@@ -34,6 +34,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
 
 const mockProntuarios = [
   {
@@ -114,8 +115,23 @@ export default function Prontuarios() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("todos");
   const [selectedProntuario, setSelectedProntuario] = useState<any>(null);
+  const [prontuarios, setProntuarios] = useState(mockProntuarios);
+  const [isNewProntuarioOpen, setIsNewProntuarioOpen] = useState(false);
+  const [novoProntuarioData, setNovoProntuarioData] = useState({
+    cliente: "",
+    servico: "",
+    profissional: "",
+    dataAtendimento: "",
+    medicamentos: "",
+    alergias: "",
+    historico: "",
+    expectativas: "",
+    produtosUtilizados: "",
+    quantidade: "",
+    observacoes: ""
+  });
 
-  const filteredProntuarios = mockProntuarios.filter(prontuario => {
+  const filteredProntuarios = prontuarios.filter(prontuario => {
     const matchSearch = prontuario.clienteNome.toLowerCase().includes(searchTerm.toLowerCase()) ||
                        prontuario.servico.toLowerCase().includes(searchTerm.toLowerCase()) ||
                        prontuario.clienteId.toLowerCase().includes(searchTerm.toLowerCase());
@@ -123,8 +139,65 @@ export default function Prontuarios() {
     return matchSearch && matchStatus;
   });
 
+  const { toast } = useToast();
+
   const formatDateTime = (dateString: string) => {
     return new Date(dateString).toLocaleString('pt-BR');
+  };
+
+  const handleSaveProntuario = (status: 'rascunho' | 'finalizado') => {
+    if (!novoProntuarioData.cliente || !novoProntuarioData.servico || !novoProntuarioData.profissional || !novoProntuarioData.dataAtendimento) {
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const novoProntuario = {
+      id: prontuarios.length + 1,
+      clienteNome: novoProntuarioData.cliente,
+      clienteId: `C${String(prontuarios.length + 1).padStart(3, '0')}`,
+      servico: novoProntuarioData.servico,
+      profissional: novoProntuarioData.profissional,
+      dataAtendimento: novoProntuarioData.dataAtendimento,
+      status: status === 'finalizado' ? 'finalizado' : 'em_andamento',
+      produtosUtilizados: novoProntuarioData.produtosUtilizados,
+      quantidadeUnidades: parseInt(novoProntuarioData.quantidade) || 0,
+      observacoes: novoProntuarioData.observacoes,
+      anamnese: {
+        medicamentos: novoProntuarioData.medicamentos,
+        alergias: novoProntuarioData.alergias,
+        historico: novoProntuarioData.historico,
+        expectativas: novoProntuarioData.expectativas
+      },
+      fotosAntes: [],
+      fotosDepois: [],
+      assinaturaDigital: status === 'finalizado',
+      dataFinalizacao: status === 'finalizado' ? new Date().toISOString() : null
+    };
+
+    setProntuarios([...prontuarios, novoProntuario]);
+    toast({
+      title: "Sucesso",
+      description: `Prontuário ${status === 'finalizado' ? 'finalizado' : 'salvo como rascunho'} com sucesso!`,
+    });
+
+    setNovoProntuarioData({
+      cliente: "",
+      servico: "",
+      profissional: "",
+      dataAtendimento: "",
+      medicamentos: "",
+      alergias: "",
+      historico: "",
+      expectativas: "",
+      produtosUtilizados: "",
+      quantidade: "",
+      observacoes: ""
+    });
+    setIsNewProntuarioOpen(false);
   };
 
   return (
@@ -137,9 +210,9 @@ export default function Prontuarios() {
           </p>
         </div>
         
-        <Dialog>
+        <Dialog open={isNewProntuarioOpen} onOpenChange={setIsNewProntuarioOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button onClick={() => setIsNewProntuarioOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Novo Prontuário
             </Button>
@@ -161,11 +234,15 @@ export default function Prontuarios() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Cliente *</label>
-                    <select className="w-full p-2 border rounded-md">
+                    <select 
+                      className="w-full p-2 border rounded-md"
+                      value={novoProntuarioData.cliente}
+                      onChange={(e) => setNovoProntuarioData({...novoProntuarioData, cliente: e.target.value})}
+                    >
                       <option value="">Selecione o cliente</option>
-                      <option value="C001">Ana Silva</option>
-                      <option value="C002">Beatriz Costa</option>
-                      <option value="C003">Carla Oliveira</option>
+                      <option value="Ana Silva">Ana Silva</option>
+                      <option value="Beatriz Costa">Beatriz Costa</option>
+                      <option value="Carla Oliveira">Carla Oliveira</option>
                     </select>
                   </div>
                   <div className="space-y-2">
@@ -266,8 +343,8 @@ export default function Prontuarios() {
             </Tabs>
 
             <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button variant="outline">Salvar Rascunho</Button>
-              <Button>Finalizar Prontuário</Button>
+              <Button variant="outline" onClick={() => handleSaveProntuario('rascunho')}>Salvar Rascunho</Button>
+              <Button onClick={() => handleSaveProntuario('finalizado')}>Finalizar Prontuário</Button>
             </div>
           </DialogContent>
         </Dialog>

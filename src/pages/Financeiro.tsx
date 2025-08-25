@@ -35,6 +35,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
 
 const mockPagamentos = [
   {
@@ -133,8 +134,20 @@ export default function Financeiro() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("todos");
   const [selectedPeriodo, setSelectedPeriodo] = useState("mes_atual");
+  const [pagamentos, setPagamentos] = useState(mockPagamentos);
+  const [isRegistrarPagamentoOpen, setIsRegistrarPagamentoOpen] = useState(false);
+  const [novoPagamentoData, setNovoPagamentoData] = useState({
+    cliente: "",
+    servico: "",
+    valor: "",
+    forma: "",
+    parcelas: "1",
+    desconto: ""
+  });
 
-  const filteredPagamentos = mockPagamentos.filter(pagamento => {
+  const { toast } = useToast();
+
+  const filteredPagamentos = pagamentos.filter(pagamento => {
     const matchSearch = pagamento.clienteNome.toLowerCase().includes(searchTerm.toLowerCase()) ||
                        pagamento.servico.toLowerCase().includes(searchTerm.toLowerCase());
     const matchStatus = selectedStatus === "todos" || pagamento.status === selectedStatus;
@@ -153,20 +166,68 @@ export default function Financeiro() {
     return new Date(dateString).toLocaleString('pt-BR');
   };
 
+  const handleRegistrarPagamento = () => {
+    if (!novoPagamentoData.cliente || !novoPagamentoData.servico || !novoPagamentoData.valor || !novoPagamentoData.forma) {
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const valor = parseFloat(novoPagamentoData.valor);
+    const desconto = parseFloat(novoPagamentoData.desconto) || 0;
+    const taxa = novoPagamentoData.forma === 'cartao_credito' ? valor * 0.035 : 
+                 novoPagamentoData.forma === 'cartao_debito' ? valor * 0.02 : 0;
+    
+    const novoPagamento = {
+      id: pagamentos.length + 1,
+      clienteNome: novoPagamentoData.cliente,
+      servico: novoPagamentoData.servico,
+      valor: valor,
+      forma: novoPagamentoData.forma,
+      status: "pago" as const,
+      dataPagamento: new Date().toISOString(),
+      dataVencimento: new Date().toISOString(),
+      parcelas: novoPagamentoData.parcelas === "1" ? "À vista" : `${novoPagamentoData.parcelas}x`,
+      desconto: desconto,
+      taxa: taxa,
+      valorLiquido: valor - desconto - taxa,
+      observacoes: "Pagamento registrado manualmente"
+    };
+
+    setPagamentos([...pagamentos, novoPagamento]);
+    toast({
+      title: "Sucesso",
+      description: "Pagamento registrado com sucesso!",
+    });
+
+    setNovoPagamentoData({
+      cliente: "",
+      servico: "",
+      valor: "",
+      forma: "",
+      parcelas: "1",
+      desconto: ""
+    });
+    setIsRegistrarPagamentoOpen(false);
+  };
+
   // Cálculos do resumo financeiro
-  const totalRecebido = mockPagamentos
+  const totalRecebido = pagamentos
     .filter(p => p.status === 'pago')
     .reduce((acc, p) => acc + p.valorLiquido, 0);
   
-  const totalPendente = mockPagamentos
+  const totalPendente = pagamentos
     .filter(p => p.status === 'pendente')
     .reduce((acc, p) => acc + p.valor, 0);
   
-  const totalTaxas = mockPagamentos
+  const totalTaxas = pagamentos
     .filter(p => p.status === 'pago')
     .reduce((acc, p) => acc + p.taxa, 0);
   
-  const totalDescontos = mockPagamentos
+  const totalDescontos = pagamentos
     .reduce((acc, p) => acc + p.desconto, 0);
 
   return (
@@ -184,9 +245,9 @@ export default function Financeiro() {
             <Download className="h-4 w-4 mr-2" />
             Exportar
           </Button>
-          <Dialog>
+          <Dialog open={isRegistrarPagamentoOpen} onOpenChange={setIsRegistrarPagamentoOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button onClick={() => setIsRegistrarPagamentoOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Registrar Pagamento
               </Button>
@@ -199,11 +260,15 @@ export default function Financeiro() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Cliente *</label>
-                    <select className="w-full p-2 border rounded-md">
+                    <select 
+                      className="w-full p-2 border rounded-md"
+                      value={novoPagamentoData.cliente}
+                      onChange={(e) => setNovoPagamentoData({...novoPagamentoData, cliente: e.target.value})}
+                    >
                       <option value="">Selecione o cliente</option>
-                      <option value="C001">Ana Silva</option>
-                      <option value="C002">Beatriz Costa</option>
-                      <option value="C003">Carla Oliveira</option>
+                      <option value="Ana Silva">Ana Silva</option>
+                      <option value="Beatriz Costa">Beatriz Costa</option>
+                      <option value="Carla Oliveira">Carla Oliveira</option>
                     </select>
                   </div>
                   <div className="space-y-2">
@@ -250,8 +315,8 @@ export default function Financeiro() {
                 </div>
               </div>
               <div className="flex justify-end gap-2">
-                <Button variant="outline">Cancelar</Button>
-                <Button>Registrar Pagamento</Button>
+                <Button variant="outline" onClick={() => setIsRegistrarPagamentoOpen(false)}>Cancelar</Button>
+                <Button onClick={handleRegistrarPagamento}>Registrar Pagamento</Button>
               </div>
             </DialogContent>
           </Dialog>

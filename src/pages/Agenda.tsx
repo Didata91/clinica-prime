@@ -92,11 +92,15 @@ export default function Agenda() {
     data: "",
     horario: ""
   });
+  const [agendamentos, setAgendamentos] = useState(mockAgendamentos);
   const { toast } = useToast();
 
-  const filteredAgendamentos = mockAgendamentos.filter(agendamento => {
-    if (selectedProfissional === "Todas") return true;
-    return agendamento.profissional === selectedProfissional;
+  const filteredAgendamentos = agendamentos.filter(agendamento => {
+    const currentDateStr = currentDate.toISOString().split('T')[0];
+    const agendamentoDateStr = agendamento.data;
+    const matchDate = agendamentoDateStr === currentDateStr;
+    const matchProfissional = selectedProfissional === "Todas" || agendamento.profissional === selectedProfissional;
+    return matchDate && matchProfissional;
   });
 
   const previousDay = () => {
@@ -212,6 +216,18 @@ export default function Agenda() {
                   });
                   return;
                 }
+                const novoAgendamento = {
+                  id: agendamentos.length + 1,
+                  data: agendamentoData.data,
+                  horario: agendamentoData.horario,
+                  cliente: agendamentoData.cliente,
+                  servico: agendamentoData.servico,
+                  profissional: agendamentoData.profissional,
+                  sala: agendamentoData.sala || "Automática",
+                  status: "solicitado",
+                  duracao: 60
+                };
+                setAgendamentos([...agendamentos, novoAgendamento]);
                 toast({
                   title: "Sucesso", 
                   description: "Agendamento criado com sucesso!"
