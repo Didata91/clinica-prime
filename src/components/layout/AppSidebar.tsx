@@ -1,5 +1,7 @@
-import { Calendar, Users, UserCog, Package, FileText, DollarSign, BarChart3, Settings, Activity, CalendarClock } from "lucide-react";
+import { Calendar, Users, UserCog, Package, FileText, DollarSign, BarChart3, Settings, Activity, CalendarClock, LogOut } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
 
 import {
   Sidebar,
@@ -11,10 +13,11 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
 
 const menuItems = [
-  { title: "Dashboard", url: "/", icon: Activity },
+  { title: "Dashboard", url: "/dashboard", icon: Activity },
   { title: "Agenda", url: "/agenda", icon: Calendar },
   { title: "Clientes", url: "/clientes", icon: Users },
   { title: "Profissionais", url: "/profissionais", icon: UserCog },
@@ -30,6 +33,11 @@ export function AppSidebar() {
   const { open } = useSidebar();
   const location = useLocation();
   const currentPath = location.pathname;
+  const { signOut, user } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
 
   const isActive = (path: string) => currentPath === path;
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
@@ -70,6 +78,24 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
+      <SidebarFooter className="p-4">
+        {open && user?.email && (
+          <div className="mb-2">
+            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+          </div>
+        )}
+        <Button
+          variant="ghost"
+          onClick={handleSignOut}
+          className="w-full justify-start p-0 h-auto"
+        >
+          <div className="flex items-center gap-2 p-2 w-full">
+            <LogOut className="h-4 w-4" />
+            {open && <span>Sair</span>}
+          </div>
+        </Button>
+      </SidebarFooter>
     </Sidebar>
   );
 }
