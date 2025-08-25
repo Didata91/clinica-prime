@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 
-const mockProfissionais = [
+const mockProfissionaisInitial = [
   {
     id: 1,
     nome: "Dra. Maria Santos",
@@ -75,17 +75,26 @@ const especialidadesDisponiveis = [
 export default function Profissionais() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [profissionais, setProfissionais] = useState(mockProfissionaisInitial);
   const [formData, setFormData] = useState({
     nome: "",
     registro: "",
     email: "",
     telefone: "",
     especialidades: [] as string[],
-    horarios: {}
+    horarios: {
+      segunda: { inicio: "", fim: "", naoAtende: false },
+      terca: { inicio: "", fim: "", naoAtende: false },
+      quarta: { inicio: "", fim: "", naoAtende: false },
+      quinta: { inicio: "", fim: "", naoAtende: false },
+      sexta: { inicio: "", fim: "", naoAtende: false },
+      sabado: { inicio: "", fim: "", naoAtende: false },
+      domingo: { inicio: "", fim: "", naoAtende: false }
+    }
   });
   const { toast } = useToast();
   
-  const filteredProfissionais = mockProfissionais.filter(profissional =>
+  const filteredProfissionais = profissionais.filter(profissional =>
     profissional.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
     profissional.conselhoRegistro.toLowerCase().includes(searchTerm.toLowerCase()) ||
     profissional.especialidades.some(esp => esp.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -110,6 +119,27 @@ export default function Profissionais() {
       return;
     }
     
+    const novoProfissional = {
+      id: profissionais.length + 1,
+      nome: formData.nome,
+      conselhoRegistro: formData.registro,
+      especialidades: formData.especialidades,
+      email: formData.email,
+      telefone: formData.telefone,
+      ativo: true,
+      agendamentosHoje: 0,
+      horariosAtendimento: Object.entries(formData.horarios).reduce((acc, [dia, horario]) => {
+        if (horario.naoAtende) {
+          acc[dia] = "Não atende";
+        } else if (horario.inicio && horario.fim) {
+          acc[dia] = `${horario.inicio}-${horario.fim}`;
+        }
+        return acc;
+      }, {} as any)
+    };
+    
+    setProfissionais([...profissionais, novoProfissional]);
+    
     toast({
       title: "Sucesso",
       description: "Profissional cadastrado com sucesso!",
@@ -121,7 +151,15 @@ export default function Profissionais() {
       email: "",
       telefone: "",
       especialidades: [],
-      horarios: {}
+      horarios: {
+        segunda: { inicio: "", fim: "", naoAtende: false },
+        terca: { inicio: "", fim: "", naoAtende: false },
+        quarta: { inicio: "", fim: "", naoAtende: false },
+        quinta: { inicio: "", fim: "", naoAtende: false },
+        sexta: { inicio: "", fim: "", naoAtende: false },
+        sabado: { inicio: "", fim: "", naoAtende: false },
+        domingo: { inicio: "", fim: "", naoAtende: false }
+      }
     });
     setIsDialogOpen(false);
   };
@@ -210,18 +248,56 @@ export default function Profissionais() {
               <div className="space-y-4">
                 <h3 className="font-medium">Horários de Atendimento</h3>
                 <div className="grid grid-cols-1 gap-3">
-                  {["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"].map(dia => (
-                    <div key={dia} className="flex items-center gap-4">
-                      <div className="w-20 text-sm">{dia}</div>
-                      <Input type="time" className="w-24" placeholder="08:00" />
-                      <span className="text-sm">às</span>
-                      <Input type="time" className="w-24" placeholder="18:00" />
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" />
-                        <span className="text-sm">Não atende</span>
-                      </label>
-                    </div>
-                  ))}
+                  {["segunda", "terca", "quarta", "quinta", "sexta", "sabado", "domingo"].map((dia, index) => {
+                    const diaLabel = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"][index];
+                    return (
+                      <div key={dia} className="flex items-center gap-4">
+                        <div className="w-20 text-sm">{diaLabel}</div>
+                        <Input 
+                          type="time" 
+                          className="w-24" 
+                          placeholder="08:00"
+                          value={formData.horarios[dia]?.inicio || ""}
+                          onChange={(e) => setFormData(prev => ({
+                            ...prev,
+                            horarios: {
+                              ...prev.horarios,
+                              [dia]: { ...prev.horarios[dia], inicio: e.target.value }
+                            }
+                          }))}
+                          disabled={formData.horarios[dia]?.naoAtende || false}
+                        />
+                        <span className="text-sm">às</span>
+                        <Input 
+                          type="time" 
+                          className="w-24" 
+                          placeholder="18:00"
+                          value={formData.horarios[dia]?.fim || ""}
+                          onChange={(e) => setFormData(prev => ({
+                            ...prev,
+                            horarios: {
+                              ...prev.horarios,
+                              [dia]: { ...prev.horarios[dia], fim: e.target.value }
+                            }
+                          }))}
+                          disabled={formData.horarios[dia]?.naoAtende || false}
+                        />
+                        <label className="flex items-center gap-2">
+                          <Checkbox
+                            checked={formData.horarios[dia]?.naoAtende || false}
+                            onCheckedChange={(checked) => setFormData(prev => ({
+                              ...prev,
+                              horarios: {
+                                ...prev.horarios,
+                                [dia]: { ...prev.horarios[dia], naoAtende: checked as boolean }
+                              }
+                            }))}
+                          />
+                          <span className="text-sm">Não atende</span>
+                        </label>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
