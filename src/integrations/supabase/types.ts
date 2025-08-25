@@ -72,6 +72,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "agendamentos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes_basic"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "agendamentos_profissional_id_fkey"
             columns: ["profissional_id"]
             isOneToOne: false
@@ -523,6 +530,181 @@ export type Database = {
       }
     }
     Views: {
+      clientes_basic: {
+        Row: {
+          alergias: string | null
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          complemento: string | null
+          consentimento_lgpd: boolean | null
+          cpf_cnpj: string | null
+          created_at: string | null
+          data_nascimento: string | null
+          email: string | null
+          id: string | null
+          instagram: string | null
+          logradouro: string | null
+          medicamentos_uso: string | null
+          nome_completo: string | null
+          numero: string | null
+          observacoes: string | null
+          sexo: Database["public"]["Enums"]["sexo_enum"] | null
+          telefone: string | null
+          termo_consentimento_assinado_em: string | null
+          uf: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          alergias?: never
+          bairro?: never
+          cep?: never
+          cidade?: string | null
+          complemento?: never
+          consentimento_lgpd?: boolean | null
+          cpf_cnpj?: never
+          created_at?: string | null
+          data_nascimento?: string | null
+          email?: string | null
+          id?: string | null
+          instagram?: string | null
+          logradouro?: never
+          medicamentos_uso?: never
+          nome_completo?: string | null
+          numero?: never
+          observacoes?: string | null
+          sexo?: Database["public"]["Enums"]["sexo_enum"] | null
+          telefone?: string | null
+          termo_consentimento_assinado_em?: string | null
+          uf?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          alergias?: never
+          bairro?: never
+          cep?: never
+          cidade?: string | null
+          complemento?: never
+          consentimento_lgpd?: boolean | null
+          cpf_cnpj?: never
+          created_at?: string | null
+          data_nascimento?: string | null
+          email?: string | null
+          id?: string | null
+          instagram?: string | null
+          logradouro?: never
+          medicamentos_uso?: never
+          nome_completo?: string | null
+          numero?: never
+          observacoes?: string | null
+          sexo?: Database["public"]["Enums"]["sexo_enum"] | null
+          telefone?: string | null
+          termo_consentimento_assinado_em?: string | null
+          uf?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      pagamentos_status: {
+        Row: {
+          agendamento_id: string | null
+          created_at: string | null
+          data_pagamento: string | null
+          forma: Database["public"]["Enums"]["forma_pagamento_enum"] | null
+          id: string | null
+          status: Database["public"]["Enums"]["status_pagamento_enum"] | null
+          transacao_externa_id: string | null
+          valor: number | null
+        }
+        Insert: {
+          agendamento_id?: string | null
+          created_at?: string | null
+          data_pagamento?: string | null
+          forma?: never
+          id?: string | null
+          status?: Database["public"]["Enums"]["status_pagamento_enum"] | null
+          transacao_externa_id?: never
+          valor?: never
+        }
+        Update: {
+          agendamento_id?: string | null
+          created_at?: string | null
+          data_pagamento?: string | null
+          forma?: never
+          id?: string | null
+          status?: Database["public"]["Enums"]["status_pagamento_enum"] | null
+          transacao_externa_id?: never
+          valor?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "agendamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prontuarios_summary: {
+        Row: {
+          agendamento_id: string | null
+          anamnese: Json | null
+          assinatura_digital_paciente: string | null
+          assinatura_profissional: string | null
+          created_at: string | null
+          data_finalizacao: string | null
+          fotos_antes: string[] | null
+          fotos_depois: string[] | null
+          id: string | null
+          lote_validade: string | null
+          observacoes: string | null
+          produtos_utilizados: string | null
+          quantidade_unidades: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          agendamento_id?: string | null
+          anamnese?: never
+          assinatura_digital_paciente?: never
+          assinatura_profissional?: never
+          created_at?: string | null
+          data_finalizacao?: string | null
+          fotos_antes?: never
+          fotos_depois?: never
+          id?: string | null
+          lote_validade?: string | null
+          observacoes?: never
+          produtos_utilizados?: never
+          quantidade_unidades?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          agendamento_id?: string | null
+          anamnese?: never
+          assinatura_digital_paciente?: never
+          assinatura_profissional?: never
+          created_at?: string | null
+          data_finalizacao?: string | null
+          fotos_antes?: never
+          fotos_depois?: never
+          id?: string | null
+          lote_validade?: string | null
+          observacoes?: never
+          produtos_utilizados?: never
+          quantidade_unidades?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prontuarios_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "agendamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usuarios_safe: {
         Row: {
           ativo: boolean | null
@@ -569,6 +751,10 @@ export type Database = {
           user_uuid: string
         }
         Returns: boolean
+      }
+      log_sensitive_access: {
+        Args: { access_type: string; entity_id: string; entity_type: string }
+        Returns: undefined
       }
     }
     Enums: {
