@@ -138,41 +138,65 @@ export default function Agenda() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Cliente *</label>
-                <Input placeholder="Buscar ou criar cliente..." />
+                <Input 
+                  placeholder="Buscar ou criar cliente..." 
+                  value={agendamentoData.cliente}
+                  onChange={(e) => setAgendamentoData({...agendamentoData, cliente: e.target.value})}
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Serviço *</label>
-                <select className="w-full p-2 border rounded-md">
+                <select 
+                  className="w-full p-2 border rounded-md"
+                  value={agendamentoData.servico}
+                  onChange={(e) => setAgendamentoData({...agendamentoData, servico: e.target.value})}
+                >
                   <option value="">Selecione um serviço</option>
-                  <option value="botox">Botox 30U</option>
-                  <option value="harmonizacao">Harmonização Facial</option>
-                  <option value="preenchimento">Preenchimento Labial</option>
-                  <option value="rinomodelacao">Rinomodelação</option>
+                  <option value="Botox 30U">Botox 30U</option>
+                  <option value="Harmonização Facial">Harmonização Facial</option>
+                  <option value="Preenchimento Labial">Preenchimento Labial</option>
+                  <option value="Rinomodelação">Rinomodelação</option>
                 </select>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Profissional *</label>
-                <select className="w-full p-2 border rounded-md">
+                <select 
+                  className="w-full p-2 border rounded-md"
+                  value={agendamentoData.profissional}
+                  onChange={(e) => setAgendamentoData({...agendamentoData, profissional: e.target.value})}
+                >
                   <option value="">Selecione um profissional</option>
-                  <option value="maria">Dra. Maria Santos</option>
-                  <option value="carla">Dra. Carla Lima</option>
+                  <option value="Dra. Maria Santos">Dra. Maria Santos</option>
+                  <option value="Dra. Carla Lima">Dra. Carla Lima</option>
                 </select>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Sala</label>
-                <select className="w-full p-2 border rounded-md">
+                <select 
+                  className="w-full p-2 border rounded-md"
+                  value={agendamentoData.sala}
+                  onChange={(e) => setAgendamentoData({...agendamentoData, sala: e.target.value})}
+                >
                   <option value="">Automática</option>
-                  <option value="sala1">Sala 1</option>
-                  <option value="sala2">Sala 2</option>
+                  <option value="Sala 1">Sala 1</option>
+                  <option value="Sala 2">Sala 2</option>
                 </select>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Data *</label>
-                <Input type="date" />
+                <Input 
+                  type="date" 
+                  value={agendamentoData.data}
+                  onChange={(e) => setAgendamentoData({...agendamentoData, data: e.target.value})}
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Horário *</label>
-                <Input type="time" />
+                <Input 
+                  type="time" 
+                  value={agendamentoData.horario}
+                  onChange={(e) => setAgendamentoData({...agendamentoData, horario: e.target.value})}
+                />
               </div>
             </div>
             <div className="flex justify-end gap-2">
@@ -180,7 +204,7 @@ export default function Agenda() {
                 Cancelar
               </Button>
               <Button onClick={() => {
-                if (!agendamentoData.cliente || !agendamentoData.servico || !agendamentoData.profissional) {
+                if (!agendamentoData.cliente || !agendamentoData.servico || !agendamentoData.profissional || !agendamentoData.data || !agendamentoData.horario) {
                   toast({
                     title: "Erro",
                     description: "Preencha todos os campos obrigatórios",
@@ -191,6 +215,14 @@ export default function Agenda() {
                 toast({
                   title: "Sucesso", 
                   description: "Agendamento criado com sucesso!"
+                });
+                setAgendamentoData({
+                  cliente: "",
+                  servico: "",
+                  profissional: "",
+                  sala: "",
+                  data: "",
+                  horario: ""
                 });
                 setIsDialogOpen(false);
               }}>
