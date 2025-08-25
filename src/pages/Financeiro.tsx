@@ -17,8 +17,12 @@ import {
   Clock,
   Filter,
   Calendar,
-  Download
+  Download,
+  Edit,
+  FileText,
+  Check
 } from "lucide-react";
+import * as XLSX from 'xlsx';
 import {
   Table,
   TableBody,
@@ -136,13 +140,16 @@ export default function Financeiro() {
   const [selectedPeriodo, setSelectedPeriodo] = useState("mes_atual");
   const [pagamentos, setPagamentos] = useState(mockPagamentos);
   const [isRegistrarPagamentoOpen, setIsRegistrarPagamentoOpen] = useState(false);
+  const [isEditando, setIsEditando] = useState(false);
+  const [pagamentoEditando, setPagamentoEditando] = useState<any>(null);
   const [novoPagamentoData, setNovoPagamentoData] = useState({
     cliente: "",
     servico: "",
     valor: "",
     forma: "",
     parcelas: "1",
-    desconto: ""
+    desconto: "",
+    observacoes: ""
   });
 
   const { toast } = useToast();
@@ -181,27 +188,48 @@ export default function Financeiro() {
     const taxa = novoPagamentoData.forma === 'cartao_credito' ? valor * 0.035 : 
                  novoPagamentoData.forma === 'cartao_debito' ? valor * 0.02 : 0;
     
-    const novoPagamento = {
-      id: pagamentos.length + 1,
-      clienteNome: novoPagamentoData.cliente,
-      servico: novoPagamentoData.servico,
-      valor: valor,
-      forma: novoPagamentoData.forma,
-      status: "pago" as const,
-      dataPagamento: new Date().toISOString(),
-      dataVencimento: new Date().toISOString(),
-      parcelas: novoPagamentoData.parcelas === "1" ? "À vista" : `${novoPagamentoData.parcelas}x`,
-      desconto: desconto,
-      taxa: taxa,
-      valorLiquido: valor - desconto - taxa,
-      observacoes: "Pagamento registrado manualmente"
-    };
+    if (isEditando && pagamentoEditando) {
+      const pagamentoAtualizado = {
+        ...pagamentoEditando,
+        clienteNome: novoPagamentoData.cliente,
+        servico: novoPagamentoData.servico,
+        valor: valor,
+        forma: novoPagamentoData.forma,
+        parcelas: novoPagamentoData.parcelas === "1" ? "À vista" : `${novoPagamentoData.parcelas}x`,
+        desconto: desconto,
+        taxa: taxa,
+        valorLiquido: valor - desconto - taxa,
+        observacoes: novoPagamentoData.observacoes || "Pagamento editado"
+      };
 
-    setPagamentos([...pagamentos, novoPagamento]);
-    toast({
-      title: "Sucesso",
-      description: "Pagamento registrado com sucesso!",
-    });
+      setPagamentos(pagamentos.map(p => p.id === pagamentoEditando.id ? pagamentoAtualizado : p));
+      toast({
+        title: "Sucesso",
+        description: "Pagamento atualizado com sucesso!",
+      });
+    } else {
+      const novoPagamento = {
+        id: pagamentos.length + 1,
+        clienteNome: novoPagamentoData.cliente,
+        servico: novoPagamentoData.servico,
+        valor: valor,
+        forma: novoPagamentoData.forma,
+        status: "pago" as const,
+        dataPagamento: new Date().toISOString(),
+        dataVencimento: new Date().toISOString(),
+        parcelas: novoPagamentoData.parcelas === "1" ? "À vista" : `${novoPagamentoData.parcelas}x`,
+        desconto: desconto,
+        taxa: taxa,
+        valorLiquido: valor - desconto - taxa,
+        observacoes: novoPagamentoData.observacoes || "Pagamento registrado manualmente"
+      };
+
+      setPagamentos([...pagamentos, novoPagamento]);
+      toast({
+        title: "Sucesso",
+        description: "Pagamento registrado com sucesso!",
+      });
+    }
 
     setNovoPagamentoData({
       cliente: "",
@@ -209,9 +237,163 @@ export default function Financeiro() {
       valor: "",
       forma: "",
       parcelas: "1",
-      desconto: ""
+      desconto: "",
+      observacoes: ""
     });
     setIsRegistrarPagamentoOpen(false);
+    setIsEditando(false);
+    setPagamentoEditando(null);
+  };
+
+  const handleEditarPagamento = (pagamento: any) => {
+    setNovoPagamentoData({
+      cliente: pagamento.clienteNome,
+      servico: pagamento.servico,
+      valor: pagamento.valor.toString(),
+      forma: pagamento.forma,
+      parcelas: pagamento.parcelas === "À vista" ? "1" : pagamento.parcelas.replace('x', ''),
+      desconto: pagamento.desconto.toString(),
+      observacoes: pagamento.observacoes
+    });
+    setPagamentoEditando(pagamento);
+    setIsEditando(true);
+    setIsRegistrarPagamentoOpen(true);
+  };
+
+  const handleConfirmarPagamento = (id: number) => {
+    setPagamentos(pagamentos.map(p => 
+      p.id === id ? { ...p, status: "pago" as const, dataPagamento: new Date().toISOString() } : p
+    ));
+    toast({
+      title: "Sucesso",
+      description: "Pagamento confirmado!",
+    });
+  };
+
+  const exportarExcel = () => {
+    const dadosExport = filteredPagamentos.map(p => ({
+      'Cliente': p.clienteNome,
+      'Serviço': p.servico,
+      'Valor Bruto': p.valor,
+      'Desconto': p.desconto,
+      'Taxa': p.taxa,
+      'Valor Líquido': p.valorLiquido,
+      'Forma Pagamento': formaMap[p.forma as keyof typeof formaMap].label,
+      'Status': statusMap[p.status as keyof typeof statusMap].label,
+      'Parcelas': p.parcelas,
+      'Data Pagamento': p.dataPagamento ? new Date(p.dataPagamento).toLocaleDateString('pt-BR') : '-',
+      'Observações': p.observacoes
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(dadosExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Pagamentos");
+    
+    const fileName = `financeiro_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    
+    toast({
+      title: "Sucesso",
+      description: "Relatório exportado em Excel!",
+    });
+  };
+
+  const gerarPDF = () => {
+    const dadosRelatorio = {
+      titulo: 'Relatório Financeiro',
+      periodo: selectedPeriodo,
+      dataGeracao: new Date().toLocaleDateString('pt-BR'),
+      totalRecebido,
+      totalPendente,
+      totalTaxas,
+      totalDescontos,
+      pagamentos: filteredPagamentos
+    };
+
+    // Criar conteúdo HTML para impressão
+    const conteudoHTML = `
+      <html>
+        <head>
+          <title>Relatório Financeiro</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .summary { display: flex; justify-content: space-around; margin: 20px 0; }
+            .summary-item { text-align: center; padding: 10px; border: 1px solid #ddd; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; }
+            .total { font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Relatório Financeiro</h1>
+            <p>Período: ${selectedPeriodo} | Data: ${dadosRelatorio.dataGeracao}</p>
+          </div>
+          
+          <div class="summary">
+            <div class="summary-item">
+              <h3>Recebido</h3>
+              <p class="total">${formatPrice(totalRecebido)}</p>
+            </div>
+            <div class="summary-item">
+              <h3>Pendente</h3>
+              <p class="total">${formatPrice(totalPendente)}</p>
+            </div>
+            <div class="summary-item">
+              <h3>Taxas</h3>
+              <p class="total">${formatPrice(totalTaxas)}</p>
+            </div>
+            <div class="summary-item">
+              <h3>Descontos</h3>
+              <p class="total">${formatPrice(totalDescontos)}</p>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Serviço</th>
+                <th>Valor</th>
+                <th>Status</th>
+                <th>Forma</th>
+                <th>Data</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredPagamentos.map(p => `
+                <tr>
+                  <td>${p.clienteNome}</td>
+                  <td>${p.servico}</td>
+                  <td>${formatPrice(p.valor)}</td>
+                  <td>${statusMap[p.status as keyof typeof statusMap].label}</td>
+                  <td>${formaMap[p.forma as keyof typeof formaMap].label}</td>
+                  <td>${p.dataPagamento ? new Date(p.dataPagamento).toLocaleDateString('pt-BR') : '-'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+
+    // Abrir em nova janela para impressão/salvar como PDF
+    const novaJanela = window.open('', '_blank');
+    if (novaJanela) {
+      novaJanela.document.write(conteudoHTML);
+      novaJanela.document.close();
+      novaJanela.focus();
+      setTimeout(() => {
+        novaJanela.print();
+      }, 500);
+    }
+
+    toast({
+      title: "Sucesso",
+      description: "PDF gerado! Use Ctrl+P para salvar como PDF.",
+    });
   };
 
   // Cálculos do resumo financeiro
@@ -241,9 +423,13 @@ export default function Financeiro() {
         </div>
         
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={exportarExcel}>
             <Download className="h-4 w-4 mr-2" />
-            Exportar
+            Excel
+          </Button>
+          <Button variant="outline" onClick={gerarPDF}>
+            <FileText className="h-4 w-4 mr-2" />
+            PDF
           </Button>
           <Dialog open={isRegistrarPagamentoOpen} onOpenChange={setIsRegistrarPagamentoOpen}>
             <DialogTrigger asChild>
@@ -254,7 +440,7 @@ export default function Financeiro() {
             </DialogTrigger>
             <DialogContent className="max-w-3xl">
               <DialogHeader>
-                <DialogTitle>Registrar Novo Pagamento</DialogTitle>
+                <DialogTitle>{isEditando ? 'Editar Pagamento' : 'Registrar Novo Pagamento'}</DialogTitle>
               </DialogHeader>
               <div className="space-y-6 py-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -273,20 +459,35 @@ export default function Financeiro() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Serviço *</label>
-                    <select className="w-full p-2 border rounded-md">
+                    <select 
+                      className="w-full p-2 border rounded-md"
+                      value={novoPagamentoData.servico}
+                      onChange={(e) => setNovoPagamentoData({...novoPagamentoData, servico: e.target.value})}
+                    >
                       <option value="">Selecione o serviço</option>
-                      <option value="botox">Botox 30U - R$ 500,00</option>
-                      <option value="preenchimento">Preenchimento Labial - R$ 800,00</option>
-                      <option value="harmonizacao">Harmonização Facial - R$ 1.200,00</option>
+                      <option value="Botox 30U">Botox 30U - R$ 500,00</option>
+                      <option value="Preenchimento Labial">Preenchimento Labial - R$ 800,00</option>
+                      <option value="Harmonização Facial Completa">Harmonização Facial - R$ 1.200,00</option>
                     </select>
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Valor (R$) *</label>
-                    <Input type="number" step="0.01" placeholder="0,00" />
+                    <Input 
+                      type="number" 
+                      step="0.01" 
+                      placeholder="0,00"
+                      value={novoPagamentoData.valor}
+                      onChange={(e) => setNovoPagamentoData({...novoPagamentoData, valor: e.target.value})}
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Forma de Pagamento *</label>
-                    <select className="w-full p-2 border rounded-md">
+                    <select 
+                      className="w-full p-2 border rounded-md"
+                      value={novoPagamentoData.forma}
+                      onChange={(e) => setNovoPagamentoData({...novoPagamentoData, forma: e.target.value})}
+                    >
+                      <option value="">Selecione a forma</option>
                       <option value="cartao_credito">Cartão de Crédito</option>
                       <option value="cartao_debito">Cartão de Débito</option>
                       <option value="pix">PIX</option>
@@ -296,7 +497,11 @@ export default function Financeiro() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Parcelas</label>
-                    <select className="w-full p-2 border rounded-md">
+                    <select 
+                      className="w-full p-2 border rounded-md"
+                      value={novoPagamentoData.parcelas}
+                      onChange={(e) => setNovoPagamentoData({...novoPagamentoData, parcelas: e.target.value})}
+                    >
                       <option value="1">À vista</option>
                       <option value="2">2x</option>
                       <option value="3">3x</option>
@@ -306,17 +511,42 @@ export default function Financeiro() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Desconto (R$)</label>
-                    <Input type="number" step="0.01" placeholder="0,00" />
+                    <Input 
+                      type="number" 
+                      step="0.01" 
+                      placeholder="0,00"
+                      value={novoPagamentoData.desconto}
+                      onChange={(e) => setNovoPagamentoData({...novoPagamentoData, desconto: e.target.value})}
+                    />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Observações</label>
-                  <Input placeholder="Informações adicionais sobre o pagamento..." />
+                  <Input 
+                    placeholder="Informações adicionais sobre o pagamento..."
+                    value={novoPagamentoData.observacoes}
+                    onChange={(e) => setNovoPagamentoData({...novoPagamentoData, observacoes: e.target.value})}
+                  />
                 </div>
               </div>
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsRegistrarPagamentoOpen(false)}>Cancelar</Button>
-                <Button onClick={handleRegistrarPagamento}>Registrar Pagamento</Button>
+                <Button variant="outline" onClick={() => {
+                  setIsRegistrarPagamentoOpen(false);
+                  setIsEditando(false);
+                  setPagamentoEditando(null);
+                  setNovoPagamentoData({
+                    cliente: "",
+                    servico: "",
+                    valor: "",
+                    forma: "",
+                    parcelas: "1",
+                    desconto: "",
+                    observacoes: ""
+                  });
+                }}>Cancelar</Button>
+                <Button onClick={handleRegistrarPagamento}>
+                  {isEditando ? 'Atualizar Pagamento' : 'Registrar Pagamento'}
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -487,12 +717,12 @@ export default function Financeiro() {
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-2">
-                              <Button variant="outline" size="sm">
-                                Ver
+                              <Button variant="outline" size="sm" onClick={() => handleEditarPagamento(pagamento)}>
+                                <Edit className="h-4 w-4" />
                               </Button>
                               {pagamento.status === 'pendente' && (
-                                <Button variant="default" size="sm">
-                                  Confirmar
+                                <Button variant="default" size="sm" onClick={() => handleConfirmarPagamento(pagamento.id)}>
+                                  <Check className="h-4 w-4" />
                                 </Button>
                               )}
                             </div>
