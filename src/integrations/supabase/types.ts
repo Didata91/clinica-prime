@@ -559,18 +559,6 @@ export type Database = {
         Args: { client_uuid: string; user_uuid: string }
         Returns: boolean
       }
-      get_user_data_secure: {
-        Args: { target_user_id: string }
-        Returns: {
-          ativo: boolean
-          created_at: string
-          email: string
-          id: string
-          nome: string
-          perfil: Database["public"]["Enums"]["perfil_usuario_enum"]
-          updated_at: string
-        }[]
-      }
       get_user_role: {
         Args: { user_uuid: string }
         Returns: Database["public"]["Enums"]["app_role"]
