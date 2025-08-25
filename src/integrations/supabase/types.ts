@@ -205,6 +205,13 @@ export type Database = {
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "logs_auditoria_por_usuario_id_fkey"
+            columns: ["por_usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios_secure"
+            referencedColumns: ["id"]
+          },
         ]
       }
       pagamentos: {
@@ -516,12 +523,53 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      usuarios_secure: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          email: string | null
+          id: string | null
+          nome: string | null
+          perfil: Database["public"]["Enums"]["perfil_usuario_enum"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          nome?: string | null
+          perfil?: Database["public"]["Enums"]["perfil_usuario_enum"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          nome?: string | null
+          perfil?: Database["public"]["Enums"]["perfil_usuario_enum"] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       can_access_client: {
         Args: { client_uuid: string; user_uuid: string }
         Returns: boolean
+      }
+      get_user_data_secure: {
+        Args: { target_user_id: string }
+        Returns: {
+          ativo: boolean
+          created_at: string
+          email: string
+          id: string
+          nome: string
+          perfil: Database["public"]["Enums"]["perfil_usuario_enum"]
+          updated_at: string
+        }[]
       }
       get_user_role: {
         Args: { user_uuid: string }
