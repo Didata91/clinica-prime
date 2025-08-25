@@ -179,7 +179,7 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Clínica Prime</CardTitle>
+          <CardTitle className="text-2xl font-bold">Clínica Dra. Gabriele Batista</CardTitle>
           <CardDescription>
             Acesse sua conta para continuar
           </CardDescription>
@@ -191,20 +191,9 @@ const Auth = () => {
             </Alert>
           )}
           
-          <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="signin">Entrar</TabsTrigger>
-              <TabsTrigger value="signup">Cadastrar</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="signin" className="mt-4">
-              <SignInForm />
-            </TabsContent>
-            
-            <TabsContent value="signup" className="mt-4">
-              <SignUpForm />
-            </TabsContent>
-          </Tabs>
+          <div className="w-full">
+            <SignInForm />
+          </div>
         </CardContent>
         
         <CardFooter className="text-center">
