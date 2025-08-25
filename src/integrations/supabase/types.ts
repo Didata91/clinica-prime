@@ -209,7 +209,7 @@ export type Database = {
             foreignKeyName: "logs_auditoria_por_usuario_id_fkey"
             columns: ["por_usuario_id"]
             isOneToOne: false
-            referencedRelation: "usuarios_secure"
+            referencedRelation: "usuarios_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -523,7 +523,7 @@ export type Database = {
       }
     }
     Views: {
-      usuarios_secure: {
+      usuarios_safe: {
         Row: {
           ativo: boolean | null
           created_at: string | null
