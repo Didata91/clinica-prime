@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           cliente_id: string
           created_at: string
+          created_by: string | null
           data_hora_fim: string
           data_hora_inicio: string
           id: string
@@ -34,6 +35,7 @@ export type Database = {
         Insert: {
           cliente_id: string
           created_at?: string
+          created_by?: string | null
           data_hora_fim: string
           data_hora_inicio: string
           id?: string
@@ -50,6 +52,7 @@ export type Database = {
         Update: {
           cliente_id?: string
           created_at?: string
+          created_by?: string | null
           data_hora_fim?: string
           data_hora_inicio?: string
           id?: string
@@ -111,6 +114,7 @@ export type Database = {
           consentimento_lgpd: boolean
           cpf_cnpj: string | null
           created_at: string
+          created_by: string | null
           data_nascimento: string | null
           email: string | null
           id: string
@@ -135,6 +139,7 @@ export type Database = {
           consentimento_lgpd?: boolean
           cpf_cnpj?: string | null
           created_at?: string
+          created_by?: string | null
           data_nascimento?: string | null
           email?: string | null
           id?: string
@@ -159,6 +164,7 @@ export type Database = {
           consentimento_lgpd?: boolean
           cpf_cnpj?: string | null
           created_at?: string
+          created_by?: string | null
           data_nascimento?: string | null
           email?: string | null
           id?: string
