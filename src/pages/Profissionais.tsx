@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Plus, Mail, Phone, UserCheck, Clock, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useProfissionais } from "@/hooks/useProfissionais";
 import {
   Table,
   TableBody,
@@ -23,66 +24,27 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 
-const mockProfissionaisInitial = [
-  {
-    id: 1,
-    nome: "Dra. Maria Santos",
-    conselhoRegistro: "CRM-SP 123456",
-    especialidades: ["Toxina Botulínica", "Preenchimento", "Harmonização Facial"],
-    email: "maria.santos@clinica.com",
-    telefone: "(11) 99999-1111",
-    ativo: true,
-    agendamentosHoje: 6,
-    horariosAtendimento: {
-      segunda: "08:00-18:00",
-      terca: "08:00-18:00", 
-      quarta: "08:00-18:00",
-      quinta: "08:00-18:00",
-      sexta: "08:00-16:00",
-      sabado: "08:00-12:00"
-    }
-  },
-  {
-    id: 2,
-    nome: "Dra. Carla Lima",
-    conselhoRegistro: "CRM-SP 789012",
-    especialidades: ["Rinomodelação", "Skinbooster", "Peeling"],
-    email: "carla.lima@clinica.com", 
-    telefone: "(11) 99999-2222",
-    ativo: true,
-    agendamentosHoje: 4,
-    horariosAtendimento: {
-      segunda: "09:00-17:00",
-      terca: "09:00-17:00",
-      quarta: "09:00-17:00", 
-      quinta: "09:00-17:00",
-      sexta: "09:00-15:00",
-      sabado: "Não atende"
-    }
-  }
-];
-
 const especialidadesDisponiveis = [
-  "Toxina Botulínica",
-  "Preenchimento", 
-  "Harmonização Facial",
-  "Rinomodelação",
-  "Skinbooster",
-  "Peeling",
-  "Microagulhamento"
+  "toxina_botulinica",
+  "preenchimento", 
+  "harmonizacao_facial",
+  "rinomodelacao",
+  "skinbooster",
+  "peeling",
+  "microagulhamento"
 ];
 
 export default function Profissionais() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [profissionais, setProfissionais] = useState(mockProfissionaisInitial);
+  const { profissionais, loading, createProfissional, updateProfissional, toggleProfissionalStatus } = useProfissionais();
   const [formData, setFormData] = useState({
     nome: "",
-    registro: "",
+    conselho_registro: "",
     email: "",
     telefone: "",
     especialidades: [] as string[],
-    horarios: {
+    horarios_atendimento: {
       segunda: { inicio: "", fim: "", naoAtende: false },
       terca: { inicio: "", fim: "", naoAtende: false },
       quarta: { inicio: "", fim: "", naoAtende: false },
@@ -96,7 +58,7 @@ export default function Profissionais() {
   
   const filteredProfissionais = profissionais.filter(profissional =>
     profissional.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    profissional.conselhoRegistro.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (profissional.conselho_registro && profissional.conselho_registro.toLowerCase().includes(searchTerm.toLowerCase())) ||
     profissional.especialidades.some(esp => esp.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
@@ -109,7 +71,7 @@ export default function Profissionais() {
     }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.nome.trim()) {
       toast({
         title: "Erro",
@@ -119,50 +81,67 @@ export default function Profissionais() {
       return;
     }
     
-    const novoProfissional = {
-      id: profissionais.length + 1,
-      nome: formData.nome,
-      conselhoRegistro: formData.registro,
-      especialidades: formData.especialidades,
-      email: formData.email,
-      telefone: formData.telefone,
-      ativo: true,
-      agendamentosHoje: 0,
-      horariosAtendimento: Object.entries(formData.horarios).reduce((acc, [dia, horario]) => {
-        if (horario.naoAtende) {
-          acc[dia] = "Não atende";
-        } else if (horario.inicio && horario.fim) {
-          acc[dia] = `${horario.inicio}-${horario.fim}`;
+    try {
+      const profissionalData = {
+        nome: formData.nome,
+        conselho_registro: formData.conselho_registro,
+        especialidades: formData.especialidades,
+        email: formData.email,
+        telefone: formData.telefone,
+        ativo: true,
+        horarios_atendimento: Object.entries(formData.horarios_atendimento).reduce((acc, [dia, horario]) => {
+          if (horario.naoAtende) {
+            acc[dia] = "Não atende";
+          } else if (horario.inicio && horario.fim) {
+            acc[dia] = `${horario.inicio}-${horario.fim}`;
+          }
+          return acc;
+        }, {} as any)
+      };
+      
+      await createProfissional(profissionalData);
+      
+      setFormData({
+        nome: "",
+        conselho_registro: "",
+        email: "",
+        telefone: "",
+        especialidades: [],
+        horarios_atendimento: {
+          segunda: { inicio: "", fim: "", naoAtende: false },
+          terca: { inicio: "", fim: "", naoAtende: false },
+          quarta: { inicio: "", fim: "", naoAtende: false },
+          quinta: { inicio: "", fim: "", naoAtende: false },
+          sexta: { inicio: "", fim: "", naoAtende: false },
+          sabado: { inicio: "", fim: "", naoAtende: false },
+          domingo: { inicio: "", fim: "", naoAtende: false }
         }
-        return acc;
-      }, {} as any)
-    };
-    
-    setProfissionais([...profissionais, novoProfissional]);
-    
-    toast({
-      title: "Sucesso",
-      description: "Profissional cadastrado com sucesso!",
-    });
-    
-    setFormData({
-      nome: "",
-      registro: "",
-      email: "",
-      telefone: "",
-      especialidades: [],
-      horarios: {
-        segunda: { inicio: "", fim: "", naoAtende: false },
-        terca: { inicio: "", fim: "", naoAtende: false },
-        quarta: { inicio: "", fim: "", naoAtende: false },
-        quinta: { inicio: "", fim: "", naoAtende: false },
-        sexta: { inicio: "", fim: "", naoAtende: false },
-        sabado: { inicio: "", fim: "", naoAtende: false },
-        domingo: { inicio: "", fim: "", naoAtende: false }
-      }
-    });
-    setIsDialogOpen(false);
+      });
+      setIsDialogOpen(false);
+    } catch (error) {
+      // Error already handled by hook
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Profissionais</h1>
+            <p className="text-muted-foreground mt-2">Carregando profissionais...</p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -202,8 +181,8 @@ export default function Profissionais() {
                   <label className="text-sm font-medium">Registro Conselho</label>
                   <Input 
                     placeholder="CRM-SP 123456"
-                    value={formData.registro}
-                    onChange={(e) => setFormData(prev => ({ ...prev, registro: e.target.value }))}
+                    value={formData.conselho_registro}
+                    onChange={(e) => setFormData(prev => ({ ...prev, conselho_registro: e.target.value }))}
                   />
                 </div>
                 <div className="space-y-2">
@@ -257,39 +236,39 @@ export default function Profissionais() {
                           type="time" 
                           className="w-24" 
                           placeholder="08:00"
-                          value={formData.horarios[dia]?.inicio || ""}
-                          onChange={(e) => setFormData(prev => ({
-                            ...prev,
-                            horarios: {
-                              ...prev.horarios,
-                              [dia]: { ...prev.horarios[dia], inicio: e.target.value }
-                            }
-                          }))}
-                          disabled={formData.horarios[dia]?.naoAtende || false}
+                    value={formData.horarios_atendimento[dia]?.inicio || ""}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      horarios_atendimento: {
+                        ...prev.horarios_atendimento,
+                        [dia]: { ...prev.horarios_atendimento[dia], inicio: e.target.value }
+                      }
+                    }))}
+                    disabled={formData.horarios_atendimento[dia]?.naoAtende || false}
                         />
                         <span className="text-sm">às</span>
                         <Input 
                           type="time" 
                           className="w-24" 
                           placeholder="18:00"
-                          value={formData.horarios[dia]?.fim || ""}
-                          onChange={(e) => setFormData(prev => ({
-                            ...prev,
-                            horarios: {
-                              ...prev.horarios,
-                              [dia]: { ...prev.horarios[dia], fim: e.target.value }
-                            }
-                          }))}
-                          disabled={formData.horarios[dia]?.naoAtende || false}
+                    value={formData.horarios_atendimento[dia]?.fim || ""}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      horarios_atendimento: {
+                        ...prev.horarios_atendimento,
+                        [dia]: { ...prev.horarios_atendimento[dia], fim: e.target.value }
+                      }
+                    }))}
+                    disabled={formData.horarios_atendimento[dia]?.naoAtende || false}
                         />
                         <label className="flex items-center gap-2">
                           <Checkbox
-                            checked={formData.horarios[dia]?.naoAtende || false}
+                            checked={formData.horarios_atendimento[dia]?.naoAtende || false}
                             onCheckedChange={(checked) => setFormData(prev => ({
                               ...prev,
-                              horarios: {
-                                ...prev.horarios,
-                                [dia]: { ...prev.horarios[dia], naoAtende: checked as boolean }
+                              horarios_atendimento: {
+                                ...prev.horarios_atendimento,
+                                [dia]: { ...prev.horarios_atendimento[dia], naoAtende: checked as boolean }
                               }
                             }))}
                           />
@@ -348,7 +327,7 @@ export default function Profissionais() {
                       <div>
                         <p className="font-medium">{profissional.nome}</p>
                         <p className="text-sm text-muted-foreground">
-                          {profissional.conselhoRegistro}
+                          {profissional.conselho_registro || 'Não informado'}
                         </p>
                       </div>
                     </TableCell>
@@ -360,10 +339,12 @@ export default function Profissionais() {
                             {profissional.email}
                           </div>
                         )}
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Phone className="h-3 w-3" />
-                          {profissional.telefone}
-                        </div>
+                        {profissional.telefone && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Phone className="h-3 w-3" />
+                            {profissional.telefone}
+                          </div>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -383,7 +364,7 @@ export default function Profissionais() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{profissional.agendamentosHoje} agendamentos</span>
+                        <span className="text-sm">0 agendamentos</span>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -397,8 +378,8 @@ export default function Profissionais() {
                           <Clock className="h-3 w-3 mr-1" />
                           Agenda
                         </Button>
-                        <Button variant="ghost" size="sm">
-                          Editar
+                        <Button variant="outline" size="sm" onClick={() => toggleProfissionalStatus(profissional.id, !profissional.ativo)}>
+                          {profissional.ativo ? "Desativar" : "Ativar"}
                         </Button>
                       </div>
                     </TableCell>
@@ -418,7 +399,7 @@ export default function Profissionais() {
               <div className="flex items-start justify-between">
                 <div>
                   <CardTitle className="text-lg">{profissional.nome}</CardTitle>
-                  <p className="text-sm text-muted-foreground">{profissional.conselhoRegistro}</p>
+                  <p className="text-sm text-muted-foreground">{profissional.conselho_registro || 'Não informado'}</p>
                 </div>
                 <Badge variant={profissional.ativo ? "default" : "secondary"}>
                   {profissional.ativo ? "Ativo" : "Inativo"}
@@ -442,7 +423,7 @@ export default function Profissionais() {
                   <h4 className="text-sm font-medium mb-2">Agenda de Hoje</h4>
                   <div className="flex items-center gap-2">
                     <UserCheck className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{profissional.agendamentosHoje} pacientes agendados</span>
+                    <span className="text-sm">0 pacientes agendados</span>
                   </div>
                 </div>
 

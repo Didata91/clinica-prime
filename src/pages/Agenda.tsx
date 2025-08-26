@@ -4,6 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight, Plus, Filter, Calendar as CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAgendamentos } from "@/hooks/useAgendamentos";
+import { useClientes } from "@/hooks/useClientes";
+import { useProfissionais } from "@/hooks/useProfissionais";
+import { useServicos } from "@/hooks/useServicos";
 import {
   Dialog,
   DialogContent,
@@ -14,60 +18,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
-const mockAgendamentos = [
-  {
-    id: 1,
-    data: "2024-01-22",
-    horario: "09:00",
-    cliente: "Ana Silva",
-    servico: "Botox 30U",
-    profissional: "Dra. Maria Santos",
-    sala: "Sala 1",
-    status: "confirmado",
-    duracao: 45
-  },
-  {
-    id: 2,
-    data: "2024-01-22", 
-    horario: "10:30",
-    cliente: "João Santos",
-    servico: "Harmonização Facial",
-    profissional: "Dra. Carla Lima",
-    sala: "Sala 2",
-    status: "solicitado",
-    duracao: 90
-  },
-  {
-    id: 3,
-    data: "2024-01-22",
-    horario: "14:00",
-    cliente: "Maria Oliveira",
-    servico: "Preenchimento Labial", 
-    profissional: "Dra. Maria Santos",
-    sala: "Sala 1",
-    status: "compareceu",
-    duracao: 60
-  },
-  {
-    id: 4,
-    data: "2024-01-22",
-    horario: "15:30",
-    cliente: "Pedro Costa",
-    servico: "Rinomodelação",
-    profissional: "Dra. Carla Lima", 
-    sala: "Sala 2",
-    status: "confirmado",
-    duracao: 75
-  }
-];
-
 const horarios = Array.from({ length: 18 }, (_, i) => {
   const hour = Math.floor(8 + i / 2);
   const minute = i % 2 === 0 ? "00" : "30";
   return `${hour.toString().padStart(2, "0")}:${minute}`;
 });
-
-const profissionais = ["Todas", "Dra. Maria Santos", "Dra. Carla Lima"];
 
 const getStatusColor = (status: string) => {
   const colors = {
@@ -81,27 +36,69 @@ const getStatusColor = (status: string) => {
 };
 
 export default function Agenda() {
-  const [currentDate, setCurrentDate] = useState(new Date("2024-01-22"));
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedProfissional, setSelectedProfissional] = useState("Todas");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { agendamentos, loading, createAgendamento, updateAgendamentoStatus } = useAgendamentos();
+  const { clientes } = useClientes();
+  const { profissionais } = useProfissionais();
+  const { servicos } = useServicos();
   const [agendamentoData, setAgendamentoData] = useState({
-    cliente: "",
-    servico: "",
-    profissional: "",
-    sala: "",
-    data: "",
-    horario: ""
+    cliente_id: "",
+    servico_id: "",
+    profissional_id: "",
+    sala_id: "",
+    data_hora_inicio: "",
+    data_hora_fim: ""
   });
-  const [agendamentos, setAgendamentos] = useState(mockAgendamentos);
   const { toast } = useToast();
 
   const filteredAgendamentos = agendamentos.filter(agendamento => {
     const currentDateStr = currentDate.toISOString().split('T')[0];
-    const agendamentoDateStr = agendamento.data;
+    const agendamentoDate = new Date(agendamento.data_hora_inicio);
+    const agendamentoDateStr = agendamentoDate.toISOString().split('T')[0];
     const matchDate = agendamentoDateStr === currentDateStr;
-    const matchProfissional = selectedProfissional === "Todas" || agendamento.profissional === selectedProfissional;
+    const matchProfissional = selectedProfissional === "Todas" || 
+      (agendamento.profissionais && agendamento.profissionais.nome === selectedProfissional);
     return matchDate && matchProfissional;
   });
+
+  const handleCreateAgendamento = async () => {
+    if (!agendamentoData.cliente_id || !agendamentoData.servico_id || !agendamentoData.profissional_id || !agendamentoData.data_hora_inicio) {
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await createAgendamento({
+        cliente_id: agendamentoData.cliente_id,
+        servico_id: agendamentoData.servico_id,
+        profissional_id: agendamentoData.profissional_id,
+        sala_id: agendamentoData.sala_id || null,
+        data_hora_inicio: agendamentoData.data_hora_inicio,
+        data_hora_fim: agendamentoData.data_hora_fim,
+        status: 'solicitado',
+        origem: 'recepcao',
+        politica_cancelamento_aceita: false
+      });
+
+      setAgendamentoData({
+        cliente_id: "",
+        servico_id: "",
+        profissional_id: "",
+        sala_id: "",
+        data_hora_inicio: "",
+        data_hora_fim: ""
+      });
+      setIsDialogOpen(false);
+    } catch (error) {
+      // Error already handled by hook
+    }
+  };
 
   const previousDay = () => {
     const newDate = new Date(currentDate);
@@ -114,6 +111,26 @@ export default function Agenda() {
     newDate.setDate(newDate.getDate() + 1);
     setCurrentDate(newDate);
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Agenda</h1>
+            <p className="text-muted-foreground mt-2">Carregando agendamentos...</p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -142,64 +159,63 @@ export default function Agenda() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Cliente *</label>
-                <Input 
-                  placeholder="Buscar ou criar cliente..." 
-                  value={agendamentoData.cliente}
-                  onChange={(e) => setAgendamentoData({...agendamentoData, cliente: e.target.value})}
-                />
+                <select 
+                  className="w-full p-2 border rounded-md"
+                  value={agendamentoData.cliente_id}
+                  onChange={(e) => setAgendamentoData({...agendamentoData, cliente_id: e.target.value})}
+                >
+                  <option value="">Selecione um cliente</option>
+                  {clientes.map(cliente => (
+                    <option key={cliente.id} value={cliente.id}>{cliente.nome_completo}</option>
+                  ))}
+                </select>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Serviço *</label>
                 <select 
                   className="w-full p-2 border rounded-md"
-                  value={agendamentoData.servico}
-                  onChange={(e) => setAgendamentoData({...agendamentoData, servico: e.target.value})}
+                  value={agendamentoData.servico_id}
+                  onChange={(e) => setAgendamentoData({...agendamentoData, servico_id: e.target.value})}
                 >
                   <option value="">Selecione um serviço</option>
-                  <option value="Botox 30U">Botox 30U</option>
-                  <option value="Harmonização Facial">Harmonização Facial</option>
-                  <option value="Preenchimento Labial">Preenchimento Labial</option>
-                  <option value="Rinomodelação">Rinomodelação</option>
+                  {servicos.map(servico => (
+                    <option key={servico.id} value={servico.id}>{servico.nome}</option>
+                  ))}
                 </select>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Profissional *</label>
                 <select 
                   className="w-full p-2 border rounded-md"
-                  value={agendamentoData.profissional}
-                  onChange={(e) => setAgendamentoData({...agendamentoData, profissional: e.target.value})}
+                  value={agendamentoData.profissional_id}
+                  onChange={(e) => setAgendamentoData({...agendamentoData, profissional_id: e.target.value})}
                 >
                   <option value="">Selecione um profissional</option>
-                  <option value="Dra. Maria Santos">Dra. Maria Santos</option>
-                  <option value="Dra. Carla Lima">Dra. Carla Lima</option>
+                  {profissionais.map(profissional => (
+                    <option key={profissional.id} value={profissional.id}>{profissional.nome}</option>
+                  ))}
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Sala</label>
-                <select 
-                  className="w-full p-2 border rounded-md"
-                  value={agendamentoData.sala}
-                  onChange={(e) => setAgendamentoData({...agendamentoData, sala: e.target.value})}
-                >
-                  <option value="">Automática</option>
-                  <option value="Sala 1">Sala 1</option>
-                  <option value="Sala 2">Sala 2</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Data *</label>
+                <label className="text-sm font-medium">Data e Hora *</label>
                 <Input 
-                  type="date" 
-                  value={agendamentoData.data}
-                  onChange={(e) => setAgendamentoData({...agendamentoData, data: e.target.value})}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Horário *</label>
-                <Input 
-                  type="time" 
-                  value={agendamentoData.horario}
-                  onChange={(e) => setAgendamentoData({...agendamentoData, horario: e.target.value})}
+                  type="datetime-local" 
+                  value={agendamentoData.data_hora_inicio}
+                  onChange={(e) => {
+                    const inicio = e.target.value;
+                    const servico = servicos.find(s => s.id === agendamentoData.servico_id);
+                    let fim = "";
+                    if (inicio && servico) {
+                      const inicioDate = new Date(inicio);
+                      inicioDate.setMinutes(inicioDate.getMinutes() + servico.duracao_minutos);
+                      fim = inicioDate.toISOString().slice(0, 16);
+                    }
+                    setAgendamentoData({
+                      ...agendamentoData, 
+                      data_hora_inicio: inicio,
+                      data_hora_fim: fim
+                    });
+                  }}
                 />
               </div>
             </div>
@@ -207,41 +223,7 @@ export default function Agenda() {
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancelar
               </Button>
-              <Button onClick={() => {
-                if (!agendamentoData.cliente || !agendamentoData.servico || !agendamentoData.profissional || !agendamentoData.data || !agendamentoData.horario) {
-                  toast({
-                    title: "Erro",
-                    description: "Preencha todos os campos obrigatórios",
-                    variant: "destructive",
-                  });
-                  return;
-                }
-                const novoAgendamento = {
-                  id: agendamentos.length + 1,
-                  data: agendamentoData.data,
-                  horario: agendamentoData.horario,
-                  cliente: agendamentoData.cliente,
-                  servico: agendamentoData.servico,
-                  profissional: agendamentoData.profissional,
-                  sala: agendamentoData.sala || "Automática",
-                  status: "solicitado",
-                  duracao: 60
-                };
-                setAgendamentos([...agendamentos, novoAgendamento]);
-                toast({
-                  title: "Sucesso", 
-                  description: "Agendamento criado com sucesso!"
-                });
-                setAgendamentoData({
-                  cliente: "",
-                  servico: "",
-                  profissional: "",
-                  sala: "",
-                  data: "",
-                  horario: ""
-                });
-                setIsDialogOpen(false);
-              }}>
+              <Button onClick={handleCreateAgendamento}>
                 Agendar
               </Button>
             </div>
@@ -279,8 +261,9 @@ export default function Agenda() {
                 onChange={(e) => setSelectedProfissional(e.target.value)}
                 className="border rounded-md px-3 py-2"
               >
+                <option value="Todas">Todas</option>
                 {profissionais.map(prof => (
-                  <option key={prof} value={prof}>{prof}</option>
+                  <option key={prof.id} value={prof.nome}>{prof.nome}</option>
                 ))}
               </select>
             </div>
@@ -293,7 +276,11 @@ export default function Agenda() {
               <h3 className="font-semibold mb-4">Timeline do Dia</h3>
               <div className="space-y-2">
                 {horarios.map((horario) => {
-                  const agendamento = filteredAgendamentos.find(a => a.horario === horario);
+                  const agendamento = filteredAgendamentos.find(a => {
+                    const agendamentoTime = new Date(a.data_hora_inicio);
+                    const timeString = `${agendamentoTime.getHours().toString().padStart(2, '0')}:${agendamentoTime.getMinutes().toString().padStart(2, '0')}`;
+                    return timeString === horario;
+                  });
                   
                   return (
                     <div key={horario} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
@@ -303,19 +290,25 @@ export default function Agenda() {
                       {agendamento ? (
                         <div className="flex-1">
                           <div className="flex items-center justify-between mb-2">
-                            <p className="font-medium">{agendamento.cliente}</p>
+                            <p className="font-medium">{agendamento.clientes?.nome_completo}</p>
                             <Badge className={getStatusColor(agendamento.status)}>
                               {agendamento.status}
                             </Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            {agendamento.servico} • {agendamento.profissional}
+                            {agendamento.servicos?.nome} • {agendamento.profissionais?.nome}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {agendamento.sala} • {agendamento.duracao} min
+                            {agendamento.salas?.nome || 'Sala não definida'}
                           </p>
                           <div className="flex gap-2 mt-2">
-                            <Button variant="outline" size="sm">Check-in</Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => updateAgendamentoStatus(agendamento.id, 'compareceu')}
+                            >
+                              Check-in
+                            </Button>
                             <Button variant="ghost" size="sm">Editar</Button>
                           </div>
                         </div>
@@ -370,13 +363,18 @@ export default function Agenda() {
                       .map(agendamento => (
                         <div key={agendamento.id} className="p-3 border rounded-lg">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="font-medium text-sm">{agendamento.horario}</span>
+                            <span className="font-medium text-sm">
+                              {new Date(agendamento.data_hora_inicio).toLocaleTimeString('pt-BR', { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              })}
+                            </span>
                             <Badge className={getStatusColor(agendamento.status)}>
                               {agendamento.status}
                             </Badge>
                           </div>
-                          <p className="text-sm">{agendamento.cliente}</p>
-                          <p className="text-xs text-muted-foreground">{agendamento.servico}</p>
+                          <p className="text-sm">{agendamento.clientes?.nome_completo}</p>
+                          <p className="text-xs text-muted-foreground">{agendamento.servicos?.nome}</p>
                         </div>
                       ))}
                   </div>

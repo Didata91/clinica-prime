@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Plus, Clock, DollarSign, AlertTriangle, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useServicos } from "@/hooks/useServicos";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
@@ -24,86 +25,23 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 
-const mockServicos = [
-  {
-    id: 1,
-    nome: "Botox 30U",
-    categoria: "Toxina Botulínica",
-    duracaoMinutos: 45,
-    precoBase: 500.00,
-    exigeAvaliacaoPrevia: false,
-    ativo: true,
-    contraIndicacoes: "Gravidez, amamentação, alergia à toxina botulínica",
-    cuidadosPre: "Não consumir álcool 24h antes, evitar anticoagulantes",
-    cuidadosPos: "Não deitar por 4h, evitar atividade física intensa"
-  },
-  {
-    id: 2,
-    nome: "Harmonização Facial Completa",
-    categoria: "Preenchimento",
-    duracaoMinutos: 120,
-    precoBase: 1200.00,
-    exigeAvaliacaoPrevia: true,
-    ativo: true,
-    contraIndicacoes: "Gravidez, processos inflamatórios ativos, alergia ao ácido hialurônico",
-    cuidadosPre: "Evitar antiinflamatórios, não consumir álcool",
-    cuidadosPos: "Aplicar gelo, evitar maquiagem por 24h"
-  },
-  {
-    id: 3,
-    nome: "Preenchimento Labial",
-    categoria: "Preenchimento", 
-    duracaoMinutos: 60,
-    precoBase: 800.00,
-    exigeAvaliacaoPrevia: false,
-    ativo: true,
-    contraIndicacoes: "Herpes labial ativo, gravidez, amamentação",
-    cuidadosPre: "Profilaxia para herpes se histórico positivo",
-    cuidadosPos: "Evitar beijos, canudo e alimentos quentes por 48h"
-  },
-  {
-    id: 4,
-    nome: "Rinomodelação",
-    categoria: "Preenchimento",
-    duracaoMinutos: 90,
-    precoBase: 1000.00,
-    exigeAvaliacaoPrevia: true,
-    ativo: true,
-    contraIndicacoes: "Cirurgia nasal prévia, processos infecciosos",
-    cuidadosPre: "Avaliação médica obrigatória, exames se necessário",
-    cuidadosPos: "Evitar trauma, não usar óculos por 48h"
-  },
-  {
-    id: 5,
-    nome: "Avaliação Inicial",
-    categoria: "Avaliação",
-    duracaoMinutos: 30,
-    precoBase: 0.00,
-    exigeAvaliacaoPrevia: false,
-    ativo: true,
-    contraIndicacoes: "Nenhuma",
-    cuidadosPre: "Vir sem maquiagem",
-    cuidadosPos: "Seguir orientações médicas"
-  }
-];
-
-const categorias = ["Todas", "Toxina Botulínica", "Preenchimento", "Avaliação", "Peeling", "Skinbooster"];
+const categorias = ["Todas", "toxina_botulinica", "preenchimento", "avaliacao", "peeling", "skinbooster"];
 
 export default function Servicos() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategoria, setSelectedCategoria] = useState("Todas");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingServico, setEditingServico] = useState<any>(null);
-  const [servicos, setServicos] = useState(mockServicos);
+  const { servicos, loading, createServico, updateServico } = useServicos();
   const [formData, setFormData] = useState({
     nome: "",
     categoria: "",
-    duracao: "",
-    preco: "",
-    exigeAvaliacao: false,
-    contraIndicacoes: "",
-    cuidadosPre: "",
-    cuidadosPos: ""
+    duracao_minutos: "",
+    preco_base: "",
+    exige_avaliacao_previa: false,
+    contra_indicacoes: "",
+    cuidados_pre: "",
+    cuidados_pos: ""
   });
   const { toast } = useToast();
   
@@ -121,8 +59,8 @@ export default function Servicos() {
     }).format(price);
   };
 
-  const handleSubmit = () => {
-    if (!formData.nome.trim() || !formData.categoria || !formData.duracao || !formData.preco) {
+  const handleSubmit = async () => {
+    if (!formData.nome.trim() || !formData.categoria || !formData.duracao_minutos || !formData.preco_base) {
       toast({
         title: "Erro",
         description: "Preencha todos os campos obrigatórios",
@@ -131,45 +69,40 @@ export default function Servicos() {
       return;
     }
     
-    const servicoData = {
-      id: editingServico ? editingServico.id : servicos.length + 1,
-      nome: formData.nome,
-      categoria: formData.categoria,
-      duracaoMinutos: parseInt(formData.duracao),
-      precoBase: parseFloat(formData.preco),
-      exigeAvaliacaoPrevia: formData.exigeAvaliacao,
-      ativo: true,
-      contraIndicacoes: formData.contraIndicacoes,
-      cuidadosPre: formData.cuidadosPre,
-      cuidadosPos: formData.cuidadosPos
-    };
+    try {
+      const servicoData = {
+        nome: formData.nome,
+        categoria: formData.categoria as any,
+        duracao_minutos: parseInt(formData.duracao_minutos),
+        preco_base: parseFloat(formData.preco_base),
+        exige_avaliacao_previa: formData.exige_avaliacao_previa,
+        ativo: true,
+        contra_indicacoes: formData.contra_indicacoes,
+        cuidados_pre: formData.cuidados_pre,
+        cuidados_pos: formData.cuidados_pos
+      };
 
-    if (editingServico) {
-      setServicos(servicos.map(s => s.id === editingServico.id ? servicoData : s));
-      toast({
-        title: "Sucesso",
-        description: "Serviço atualizado com sucesso!",
+      if (editingServico) {
+        await updateServico(editingServico.id, servicoData);
+      } else {
+        await createServico(servicoData);
+      }
+      
+      setFormData({
+        nome: "",
+        categoria: "",
+        duracao_minutos: "",
+        preco_base: "",
+        exige_avaliacao_previa: false,
+        contra_indicacoes: "",
+        cuidados_pre: "",
+        cuidados_pos: ""
       });
-    } else {
-      setServicos([...servicos, servicoData]);
-      toast({
-        title: "Sucesso",
-        description: "Serviço cadastrado com sucesso!",
-      });
+      setEditingServico(null);
+      setIsDialogOpen(false);
+    } catch (error) {
+      // Error already handled by hook
     }
-    
-    setFormData({
-      nome: "",
-      categoria: "",
-      duracao: "",
-      preco: "",
-      exigeAvaliacao: false,
-      contraIndicacoes: "",
-      cuidadosPre: "",
-      cuidadosPos: ""
-    });
-    setEditingServico(null);
-    setIsDialogOpen(false);
   };
 
   const handleEdit = (servico: any) => {
@@ -177,24 +110,45 @@ export default function Servicos() {
     setFormData({
       nome: servico.nome,
       categoria: servico.categoria,
-      duracao: servico.duracaoMinutos.toString(),
-      preco: servico.precoBase.toString(),
-      exigeAvaliacao: servico.exigeAvaliacaoPrevia,
-      contraIndicacoes: servico.contraIndicacoes || "",
-      cuidadosPre: servico.cuidadosPre || "",
-      cuidadosPos: servico.cuidadosPos || ""
+      duracao_minutos: servico.duracao_minutos.toString(),
+      preco_base: servico.preco_base.toString(),
+      exige_avaliacao_previa: servico.exige_avaliacao_previa,
+      contra_indicacoes: servico.contra_indicacoes || "",
+      cuidados_pre: servico.cuidados_pre || "",
+      cuidados_pos: servico.cuidados_pos || ""
     });
     setIsDialogOpen(true);
   };
 
-  const toggleServicoStatus = (servicoId: number) => {
-    setServicos(servicos.map(s => 
-      s.id === servicoId ? { ...s, ativo: !s.ativo } : s
-    ));
-    toast({
-      title: "Status atualizado",
-      description: "Status do serviço foi alterado com sucesso!",
-    });
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Serviços</h1>
+            <p className="text-muted-foreground mt-2">Carregando serviços...</p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const toggleServicoStatus = async (servicoId: string) => {
+    try {
+      const servico = servicos.find(s => s.id === servicoId);
+      if (servico) {
+        await updateServico(servicoId, { ativo: !servico.ativo });
+      }
+    } catch (error) {
+      // Error already handled by hook
+    }
   };
 
   return (
@@ -239,11 +193,11 @@ export default function Servicos() {
                     onChange={(e) => setFormData(prev => ({ ...prev, categoria: e.target.value }))}
                   >
                     <option value="">Selecione uma categoria</option>
-                    <option value="Toxina Botulínica">Toxina Botulínica</option>
-                    <option value="Preenchimento">Preenchimento</option>
-                    <option value="Avaliação">Avaliação</option>
-                    <option value="Peeling">Peeling</option>
-                    <option value="Skinbooster">Skinbooster</option>
+                    <option value="toxina_botulinica">Toxina Botulínica</option>
+                    <option value="preenchimento">Preenchimento</option>
+                    <option value="avaliacao">Avaliação</option>
+                    <option value="peeling">Peeling</option>
+                    <option value="skinbooster">Skinbooster</option>
                   </select>
                 </div>
                 <div className="space-y-2">
@@ -251,8 +205,8 @@ export default function Servicos() {
                   <Input 
                     type="number" 
                     placeholder="60"
-                    value={formData.duracao}
-                    onChange={(e) => setFormData(prev => ({ ...prev, duracao: e.target.value }))}
+                    value={formData.duracao_minutos}
+                    onChange={(e) => setFormData(prev => ({ ...prev, duracao_minutos: e.target.value }))}
                   />
                 </div>
                 <div className="space-y-2">
@@ -261,8 +215,8 @@ export default function Servicos() {
                     type="number" 
                     step="0.01" 
                     placeholder="500.00"
-                    value={formData.preco}
-                    onChange={(e) => setFormData(prev => ({ ...prev, preco: e.target.value }))}
+                    value={formData.preco_base}
+                    onChange={(e) => setFormData(prev => ({ ...prev, preco_base: e.target.value }))}
                   />
                 </div>
               </div>
@@ -271,9 +225,9 @@ export default function Servicos() {
                 <div className="flex items-center space-x-2">
                   <Checkbox 
                     id="avaliacao-previa"
-                    checked={formData.exigeAvaliacao}
+                    checked={formData.exige_avaliacao_previa}
                     onCheckedChange={(checked) => 
-                      setFormData(prev => ({ ...prev, exigeAvaliacao: checked as boolean }))
+                      setFormData(prev => ({ ...prev, exige_avaliacao_previa: checked as boolean }))
                     }
                   />
                   <label htmlFor="avaliacao-previa" className="text-sm font-medium cursor-pointer">
@@ -291,8 +245,8 @@ export default function Servicos() {
                   <Textarea 
                     placeholder="Liste as principais contraindicações do procedimento..."
                     rows={3}
-                    value={formData.contraIndicacoes}
-                    onChange={(e) => setFormData(prev => ({ ...prev, contraIndicacoes: e.target.value }))}
+                    value={formData.contra_indicacoes}
+                    onChange={(e) => setFormData(prev => ({ ...prev, contra_indicacoes: e.target.value }))}
                   />
                 </div>
 
@@ -301,8 +255,8 @@ export default function Servicos() {
                   <Textarea 
                     placeholder="Orientações para antes do procedimento..."
                     rows={3}
-                    value={formData.cuidadosPre}
-                    onChange={(e) => setFormData(prev => ({ ...prev, cuidadosPre: e.target.value }))}
+                    value={formData.cuidados_pre}
+                    onChange={(e) => setFormData(prev => ({ ...prev, cuidados_pre: e.target.value }))}
                   />
                 </div>
 
@@ -311,8 +265,8 @@ export default function Servicos() {
                   <Textarea 
                     placeholder="Orientações para após o procedimento..."
                     rows={3}
-                    value={formData.cuidadosPos}
-                    onChange={(e) => setFormData(prev => ({ ...prev, cuidadosPos: e.target.value }))}
+                    value={formData.cuidados_pos}
+                    onChange={(e) => setFormData(prev => ({ ...prev, cuidados_pos: e.target.value }))}
                   />
                 </div>
               </div>
@@ -324,12 +278,12 @@ export default function Servicos() {
                 setFormData({
                   nome: "",
                   categoria: "",
-                  duracao: "",
-                  preco: "",
-                  exigeAvaliacao: false,
-                  contraIndicacoes: "",
-                  cuidadosPre: "",
-                  cuidadosPos: ""
+                  duracao_minutos: "",
+                  preco_base: "",
+                  exige_avaliacao_previa: false,
+                  contra_indicacoes: "",
+                  cuidados_pre: "",
+                  cuidados_pos: ""
                 });
               }}>
                 Cancelar
@@ -396,17 +350,17 @@ export default function Servicos() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span>{servico.duracaoMinutos} min</span>
+                        <span>{servico.duracao_minutos} min</span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{formatPrice(servico.precoBase)}</span>
+                        <span className="font-medium">{formatPrice(servico.preco_base)}</span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      {servico.exigeAvaliacaoPrevia ? (
+                      {servico.exige_avaliacao_previa ? (
                         <div className="flex items-center gap-2 text-amber-600">
                           <AlertTriangle className="h-4 w-4" />
                           <span className="text-sm">Avaliação prévia</span>
@@ -461,15 +415,15 @@ export default function Servicos() {
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{servico.duracaoMinutos} min</span>
+                    <span className="text-sm">{servico.duracao_minutos} min</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-semibold">{formatPrice(servico.precoBase)}</span>
+                    <span className="font-semibold">{formatPrice(servico.preco_base)}</span>
                   </div>
                 </div>
 
-                {servico.exigeAvaliacaoPrevia && (
+                {servico.exige_avaliacao_previa && (
                   <div className="flex items-center gap-2 text-amber-600 bg-amber-50 p-2 rounded">
                     <AlertTriangle className="h-4 w-4" />
                     <span className="text-sm">Requer avaliação prévia</span>
@@ -479,7 +433,7 @@ export default function Servicos() {
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium">Cuidados Pós-Procedimento</h4>
                   <p className="text-xs text-muted-foreground line-clamp-2">
-                    {servico.cuidadosPos}
+                    {servico.cuidados_pos}
                   </p>
                 </div>
 
