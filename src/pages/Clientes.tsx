@@ -259,14 +259,13 @@ export default function Clientes() {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Contato</TableHead>
-                  <TableHead>Informações</TableHead>
-                  <TableHead>Histórico</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Ações</TableHead>
-                </TableRow>
+                 <TableRow>
+                   <TableHead>Cliente</TableHead>
+                   <TableHead>Contato</TableHead>
+                   <TableHead>Informações</TableHead>
+                   <TableHead>Status</TableHead>
+                   <TableHead>Ações</TableHead>
+                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredClientes.map((cliente) => (
@@ -307,19 +306,12 @@ export default function Clientes() {
                         </p>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <UserCheck className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">Cliente ativo</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <Badge variant={cliente.consentimento_lgpd ? "default" : "destructive"}>
-                          {cliente.consentimento_lgpd ? "LGPD OK" : "Pendente LGPD"}
-                        </Badge>
-                      </div>
-                    </TableCell>
+                     <TableCell>
+                       <div className="flex items-center gap-2">
+                         <UserCheck className="h-4 w-4 text-muted-foreground" />
+                         <span className="text-sm">Cliente ativo</span>
+                       </div>
+                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
                          <Button 

@@ -1,553 +1,336 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { 
-  Settings, 
-  User, 
-  Bell, 
-  Shield, 
-  Building, 
-  Palette,
-  Clock,
-  Mail,
-  Phone,
-  MapPin,
-  Save,
-  Users,
-  Calendar,
-  DollarSign,
-  Database,
-  Download,
-  Upload
-} from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useAppConfig } from "@/hooks/useAppConfig";
+import { getWeekdayName } from "@/lib/scheduleUtils";
+import { Trash2, Plus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
-export default function Configuracoes() {
-  const [configuracoes, setConfiguracoes] = useState({
-    // Dados da clínica
-    nomeClinica: "Clínica Prime Estética",
-    cnpj: "12.345.678/0001-90",
-    telefone: "(11) 99999-9999",
-    email: "contato@clinicaprime.com.br",
-    endereco: "Rua das Flores, 123 - Centro",
-    cidade: "São Paulo",
-    uf: "SP",
-    cep: "01234-567",
-    
-    // Configurações de funcionamento
-    horarioInicio: "08:00",
-    horarioFim: "18:00",
-    intervaloAgendamento: 30,
-    diasFuncionamento: ["segunda", "terca", "quarta", "quinta", "sexta", "sabado"],
-    
-    // Notificações
-    notificarNovosAgendamentos: true,
-    notificarCancelamentos: true,
-    notificarLembretes: true,
-    enviarLembreteCliente: true,
-    antecedenciaLembrete: 24,
-    
-    // Configurações financeiras
-    taxaCartaoCredito: 3.5,
-    taxaCartaoDebito: 2.0,
-    descontoAVista: 10,
-    permiteParcelamento: true,
-    maxParcelas: 6,
-    
-    // Configurações de segurança
-    senhaObrigatoria: true,
-    sessaoExpira: 480, // 8 horas em minutos
-    logAcoes: true,
-    backupAutomatico: true,
-    
-    // Configurações de interface
-    temaEscuro: false,
-    idioma: "pt-BR",
-    mostrarFotos: true,
-    compactarInterface: false
+const Configuracoes = () => {
+  const { config, scheduleWindows, loading, updateConfig, createScheduleWindow, updateScheduleWindow, deleteScheduleWindow } = useAppConfig();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newWindow, setNewWindow] = useState({
+    weekday: null as number | null,
+    start_time: "08:00",
+    end_time: "18:00",
+    specific_date: null as string | null,
+    is_blocked: false,
+    notes: "",
   });
 
   const { toast } = useToast();
 
-  const handleSave = () => {
-    // Simular salvamento das configurações
-    setTimeout(() => {
-      toast({
-        title: "Configurações salvas",
-        description: "Todas as alterações foram salvas com sucesso!",
-      });
-    }, 500);
+  const handleConfigSave = async (field: string, value: any) => {
+    if (!config) return;
     
-    console.log("Configurações salvas:", configuracoes);
-    // Aqui seria feita a chamada para salvar no backend
+    try {
+      await updateConfig({ [field]: value });
+    } catch (error) {
+      console.error("Error saving config:", error);
+    }
   };
+
+  const handleCreateWindow = async () => {
+    try {
+      await createScheduleWindow(newWindow);
+      setNewWindow({
+        weekday: null,
+        start_time: "08:00",
+        end_time: "18:00",
+        specific_date: null,
+        is_blocked: false,
+        notes: "",
+      });
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error("Error creating window:", error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Carregando configurações...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!config) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <p className="text-muted-foreground">Erro ao carregar configurações</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Configurações</h1>
-          <p className="text-muted-foreground mt-2">
-            Configure as preferências e parâmetros do sistema
-          </p>
-        </div>
-        
-        <Button onClick={handleSave}>
-          <Save className="h-4 w-4 mr-2" />
-          Salvar Alterações
-        </Button>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Configurações</h1>
       </div>
 
-      <Tabs defaultValue="clinica" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+      <Tabs defaultValue="clinica" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="clinica">Clínica</TabsTrigger>
           <TabsTrigger value="funcionamento">Funcionamento</TabsTrigger>
-          <TabsTrigger value="notificacoes">Notificações</TabsTrigger>
-          <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
-          <TabsTrigger value="seguranca">Segurança</TabsTrigger>
+          <TabsTrigger value="agenda">Agenda</TabsTrigger>
           <TabsTrigger value="interface">Interface</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="clinica" className="space-y-6">
+
+        <TabsContent value="clinica">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building className="h-5 w-5" />
-                Dados da Clínica
-              </CardTitle>
+              <CardTitle>Informações da Clínica</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="nomeClinica">Nome da Clínica</Label>
-                  <Input
-                    id="nomeClinica"
-                    value={configuracoes.nomeClinica}
-                    onChange={(e) => setConfiguracoes({...configuracoes, nomeClinica: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cnpj">CNPJ</Label>
-                  <Input
-                    id="cnpj"
-                    value={configuracoes.cnpj}
-                    onChange={(e) => setConfiguracoes({...configuracoes, cnpj: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="telefone">Telefone</Label>
-                  <div className="flex">
-                    <Phone className="h-4 w-4 mt-3 mr-2 text-muted-foreground" />
-                    <Input
-                      id="telefone"
-                      value={configuracoes.telefone}
-                      onChange={(e) => setConfiguracoes({...configuracoes, telefone: e.target.value})}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">E-mail</Label>
-                  <div className="flex">
-                    <Mail className="h-4 w-4 mt-3 mr-2 text-muted-foreground" />
-                    <Input
-                      id="email"
-                      type="email"
-                      value={configuracoes.email}
-                      onChange={(e) => setConfiguracoes({...configuracoes, email: e.target.value})}
-                    />
-                  </div>
-                </div>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="clinic_name">Nome da Clínica</Label>
+                <Input
+                  id="clinic_name"
+                  value={config.clinic_name || ""}
+                  onChange={(e) => handleConfigSave("clinic_name", e.target.value)}
+                  onBlur={(e) => handleConfigSave("clinic_name", e.target.value)}
+                />
               </div>
               
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
-                  Endereço
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="md:col-span-2 space-y-2">
-                    <Label htmlFor="endereco">Logradouro</Label>
-                    <Input
-                      id="endereco"
-                      value={configuracoes.endereco}
-                      onChange={(e) => setConfiguracoes({...configuracoes, endereco: e.target.value})}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cep">CEP</Label>
-                    <Input
-                      id="cep"
-                      value={configuracoes.cep}
-                      onChange={(e) => setConfiguracoes({...configuracoes, cep: e.target.value})}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cidade">Cidade</Label>
-                    <Input
-                      id="cidade"
-                      value={configuracoes.cidade}
-                      onChange={(e) => setConfiguracoes({...configuracoes, cidade: e.target.value})}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="uf">UF</Label>
-                    <select 
-                      id="uf"
-                      className="w-full p-2 border rounded-md"
-                      value={configuracoes.uf}
-                      onChange={(e) => setConfiguracoes({...configuracoes, uf: e.target.value})}
-                    >
-                      <option value="SP">São Paulo</option>
-                      <option value="RJ">Rio de Janeiro</option>
-                      <option value="MG">Minas Gerais</option>
-                      <option value="RS">Rio Grande do Sul</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="funcionamento" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5" />
-                Horários de Funcionamento
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="horarioInicio">Horário de Abertura</Label>
-                  <Input
-                    id="horarioInicio"
-                    type="time"
-                    value={configuracoes.horarioInicio}
-                    onChange={(e) => setConfiguracoes({...configuracoes, horarioInicio: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="horarioFim">Horário de Fechamento</Label>
-                  <Input
-                    id="horarioFim"
-                    type="time"
-                    value={configuracoes.horarioFim}
-                    onChange={(e) => setConfiguracoes({...configuracoes, horarioFim: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="intervalo">Intervalo entre Agendamentos (min)</Label>
-                  <select 
-                    id="intervalo"
-                    className="w-full p-2 border rounded-md"
-                    value={configuracoes.intervaloAgendamento}
-                    onChange={(e) => setConfiguracoes({...configuracoes, intervaloAgendamento: Number(e.target.value)})}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="timezone">Fuso Horário</Label>
+                  <Select 
+                    value={config.timezone} 
+                    onValueChange={(value) => handleConfigSave("timezone", value)}
                   >
-                    <option value={15}>15 minutos</option>
-                    <option value={30}>30 minutos</option>
-                    <option value={45}>45 minutos</option>
-                    <option value={60}>60 minutos</option>
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="America/Sao_Paulo">America/São Paulo</SelectItem>
+                      <SelectItem value="America/Recife">America/Recife</SelectItem>
+                      <SelectItem value="America/Manaus">America/Manaus</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Dias de Funcionamento</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {[
-                    { key: "segunda", label: "Segunda-feira" },
-                    { key: "terca", label: "Terça-feira" },
-                    { key: "quarta", label: "Quarta-feira" },
-                    { key: "quinta", label: "Quinta-feira" },
-                    { key: "sexta", label: "Sexta-feira" },
-                    { key: "sabado", label: "Sábado" },
-                    { key: "domingo", label: "Domingo" }
-                  ].map((dia) => (
-                    <div key={dia.key} className="flex items-center space-x-2">
-                      <Switch
-                        id={dia.key}
-                        checked={configuracoes.diasFuncionamento.includes(dia.key)}
-                        onCheckedChange={(checked) => {
-                          const novosDias = checked 
-                            ? [...configuracoes.diasFuncionamento, dia.key]
-                            : configuracoes.diasFuncionamento.filter(d => d !== dia.key);
-                          setConfiguracoes({...configuracoes, diasFuncionamento: novosDias});
-                        }}
-                      />
-                      <Label htmlFor={dia.key}>{dia.label}</Label>
-                    </div>
-                  ))}
+                <div>
+                  <Label htmlFor="currency">Moeda</Label>
+                  <Select 
+                    value={config.currency} 
+                    onValueChange={(value) => handleConfigSave("currency", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="BRL">Real (R$)</SelectItem>
+                      <SelectItem value="USD">Dólar ($)</SelectItem>
+                      <SelectItem value="EUR">Euro (€)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="notificacoes" className="space-y-6">
+        <TabsContent value="funcionamento">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5" />
-                Configurações de Notificações
-              </CardTitle>
+              <CardTitle>Configurações de Agendamento</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Notificações do Sistema</h3>
-                <div className="space-y-4">
-                  {[
-                    { key: "notificarNovosAgendamentos", label: "Novos agendamentos", desc: "Receber notificação quando um novo agendamento for criado" },
-                    { key: "notificarCancelamentos", label: "Cancelamentos", desc: "Notificar sobre cancelamentos de consultas" },
-                    { key: "notificarLembretes", label: "Lembretes de consulta", desc: "Ativar sistema de lembretes automáticos" }
-                  ].map((item) => (
-                    <div key={item.key} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                      <div className="space-y-1">
-                        <p className="font-medium">{item.label}</p>
-                        <p className="text-sm text-muted-foreground">{item.desc}</p>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="agenda_interval_minutes">Intervalo entre Agendamentos (minutos)</Label>
+                  <Select 
+                    value={config.agenda_interval_minutes.toString()} 
+                    onValueChange={(value) => handleConfigSave("agenda_interval_minutes", parseInt(value))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="15">15 minutos</SelectItem>
+                      <SelectItem value="30">30 minutos</SelectItem>
+                      <SelectItem value="45">45 minutos</SelectItem>
+                      <SelectItem value="60">60 minutos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="allow_overbooking"
+                    checked={config.allow_overbooking}
+                    onCheckedChange={(checked) => handleConfigSave("allow_overbooking", checked)}
+                  />
+                  <Label htmlFor="allow_overbooking">Permitir Sobreposição de Horários</Label>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="agenda">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Janelas de Agendamento</CardTitle>
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Nova Janela
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Nova Janela de Agendamento</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Dia da Semana</Label>
+                          <Select 
+                            value={newWindow.weekday?.toString() || ""} 
+                            onValueChange={(value) => setNewWindow({...newWindow, weekday: value ? parseInt(value) : null})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o dia" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="0">Domingo</SelectItem>
+                              <SelectItem value="1">Segunda-feira</SelectItem>
+                              <SelectItem value="2">Terça-feira</SelectItem>
+                              <SelectItem value="3">Quarta-feira</SelectItem>
+                              <SelectItem value="4">Quinta-feira</SelectItem>
+                              <SelectItem value="5">Sexta-feira</SelectItem>
+                              <SelectItem value="6">Sábado</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Data Específica (opcional)</Label>
+                          <Input
+                            type="date"
+                            value={newWindow.specific_date || ""}
+                            onChange={(e) => setNewWindow({...newWindow, specific_date: e.target.value || null})}
+                          />
+                        </div>
                       </div>
-                      <Switch
-                        checked={configuracoes[item.key as keyof typeof configuracoes] as boolean}
-                        onCheckedChange={(checked) => setConfiguracoes({...configuracoes, [item.key]: checked})}
-                      />
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Horário Início</Label>
+                          <Input
+                            type="time"
+                            value={newWindow.start_time}
+                            onChange={(e) => setNewWindow({...newWindow, start_time: e.target.value})}
+                          />
+                        </div>
+                        <div>
+                          <Label>Horário Fim</Label>
+                          <Input
+                            type="time"
+                            value={newWindow.end_time}
+                            onChange={(e) => setNewWindow({...newWindow, end_time: e.target.value})}
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          checked={newWindow.is_blocked}
+                          onCheckedChange={(checked) => setNewWindow({...newWindow, is_blocked: checked})}
+                        />
+                        <Label>Bloqueado (feriado/indisponível)</Label>
+                      </div>
+                      
+                      <div>
+                        <Label>Observações</Label>
+                        <Input
+                          value={newWindow.notes}
+                          onChange={(e) => setNewWindow({...newWindow, notes: e.target.value})}
+                          placeholder="Ex: Feriado nacional"
+                        />
+                      </div>
+                      
+                      <Button onClick={handleCreateWindow} className="w-full">
+                        Criar Janela
+                      </Button>
                     </div>
-                  ))}
-                </div>
+                  </DialogContent>
+                </Dialog>
               </div>
-
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Lembretes para Clientes</h3>
-                <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                  <div className="space-y-1">
-                    <p className="font-medium">Enviar lembrete por WhatsApp</p>
-                    <p className="text-sm text-muted-foreground">Enviar mensagens automáticas de lembrete</p>
-                  </div>
-                  <Switch
-                    checked={configuracoes.enviarLembreteCliente}
-                    onCheckedChange={(checked) => setConfiguracoes({...configuracoes, enviarLembreteCliente: checked})}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="antecedencia">Antecedência do Lembrete</Label>
-                    <select 
-                      id="antecedencia"
-                      className="w-full p-2 border rounded-md"
-                      value={configuracoes.antecedenciaLembrete}
-                      onChange={(e) => setConfiguracoes({...configuracoes, antecedenciaLembrete: Number(e.target.value)})}
+              <p className="text-sm text-muted-foreground">
+                Configure os horários e dias disponíveis para agendamentos
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {scheduleWindows.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">
+                    Nenhuma janela de agendamento configurada
+                  </p>
+                ) : (
+                  scheduleWindows.map((window) => (
+                    <div
+                      key={window.id}
+                      className={`flex items-center justify-between p-3 border rounded-lg ${
+                        window.is_blocked ? 'bg-destructive/10 border-destructive/20' : 'bg-background'
+                      }`}
                     >
-                      <option value={2}>2 horas antes</option>
-                      <option value={6}>6 horas antes</option>
-                      <option value={12}>12 horas antes</option>
-                      <option value={24}>24 horas antes</option>
-                      <option value={48}>48 horas antes</option>
-                    </select>
-                  </div>
-                </div>
+                      <div className="flex-1">
+                        <div className="font-medium">
+                          {window.specific_date 
+                            ? new Date(window.specific_date).toLocaleDateString('pt-BR')
+                            : window.weekday !== null ? getWeekdayName(window.weekday) : 'Todos os dias'
+                          }
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {window.start_time} - {window.end_time}
+                          {window.is_blocked && ' (Bloqueado)'}
+                          {window.notes && ` • ${window.notes}`}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteScheduleWindow(window.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="financeiro" className="space-y-6">
+        <TabsContent value="interface">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
-                Configurações Financeiras
-              </CardTitle>
+              <CardTitle>Preferências de Interface</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Taxas de Pagamento</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="taxaCredito">Taxa Cartão de Crédito (%)</Label>
-                    <Input
-                      id="taxaCredito"
-                      type="number"
-                      step="0.1"
-                      value={configuracoes.taxaCartaoCredito}
-                      onChange={(e) => setConfiguracoes({...configuracoes, taxaCartaoCredito: Number(e.target.value)})}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="taxaDebito">Taxa Cartão de Débito (%)</Label>
-                    <Input
-                      id="taxaDebito"
-                      type="number"
-                      step="0.1"
-                      value={configuracoes.taxaCartaoDebito}
-                      onChange={(e) => setConfiguracoes({...configuracoes, taxaCartaoDebito: Number(e.target.value)})}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Descontos e Parcelamento</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="descontoVista">Desconto à Vista (%)</Label>
-                    <Input
-                      id="descontoVista"
-                      type="number"
-                      step="0.1"
-                      value={configuracoes.descontoAVista}
-                      onChange={(e) => setConfiguracoes({...configuracoes, descontoAVista: Number(e.target.value)})}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="maxParcelas">Máximo de Parcelas</Label>
-                    <select 
-                      id="maxParcelas"
-                      className="w-full p-2 border rounded-md"
-                      value={configuracoes.maxParcelas}
-                      onChange={(e) => setConfiguracoes({...configuracoes, maxParcelas: Number(e.target.value)})}
-                    >
-                      <option value={1}>À vista apenas</option>
-                      <option value={2}>Até 2x</option>
-                      <option value={3}>Até 3x</option>
-                      <option value={6}>Até 6x</option>
-                      <option value={12}>Até 12x</option>
-                    </select>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                  <div className="space-y-1">
-                    <p className="font-medium">Permitir Parcelamento</p>
-                    <p className="text-sm text-muted-foreground">Habilitar pagamento parcelado nos serviços</p>
-                  </div>
-                  <Switch
-                    checked={configuracoes.permiteParcelamento}
-                    onCheckedChange={(checked) => setConfiguracoes({...configuracoes, permiteParcelamento: checked})}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="seguranca" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                Configurações de Segurança
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                {[
-                  { key: "senhaObrigatoria", label: "Senha Obrigatória", desc: "Exigir autenticação para acessar o sistema" },
-                  { key: "logAcoes", label: "Log de Ações", desc: "Registrar todas as ações dos usuários para auditoria" },
-                  { key: "backupAutomatico", label: "Backup Automático", desc: "Realizar backup automático dos dados diariamente" }
-                ].map((item) => (
-                  <div key={item.key} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                    <div className="space-y-1">
-                      <p className="font-medium">{item.label}</p>
-                      <p className="text-sm text-muted-foreground">{item.desc}</p>
-                    </div>
-                    <Switch
-                      checked={configuracoes[item.key as keyof typeof configuracoes] as boolean}
-                      onCheckedChange={(checked) => setConfiguracoes({...configuracoes, [item.key]: checked})}
-                    />
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Configurações Avançadas</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="sessaoExpira">Tempo de Expiração da Sessão (minutos)</Label>
-                    <select 
-                      id="sessaoExpira"
-                      className="w-full p-2 border rounded-md"
-                      value={configuracoes.sessaoExpira}
-                      onChange={(e) => setConfiguracoes({...configuracoes, sessaoExpira: Number(e.target.value)})}
-                    >
-                      <option value={60}>1 hora</option>
-                      <option value={240}>4 horas</option>
-                      <option value={480}>8 horas</option>
-                      <option value={1440}>24 horas</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Backup e Restauração</h3>
-                <div className="flex gap-4">
-                  <Button variant="outline">
-                    <Download className="h-4 w-4 mr-2" />
-                    Fazer Backup
-                  </Button>
-                  <Button variant="outline">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Restaurar Backup
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="interface" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Palette className="h-5 w-5" />
-                Configurações de Interface
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                {[
-                  { key: "temaEscuro", label: "Tema Escuro", desc: "Utilizar modo escuro na interface" },
-                  { key: "mostrarFotos", label: "Mostrar Fotos", desc: "Exibir fotos dos procedimentos nos prontuários" },
-                  { key: "compactarInterface", label: "Interface Compacta", desc: "Reduzir espaçamentos para mostrar mais informações" }
-                ].map((item) => (
-                  <div key={item.key} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                    <div className="space-y-1">
-                      <p className="font-medium">{item.label}</p>
-                      <p className="text-sm text-muted-foreground">{item.desc}</p>
-                    </div>
-                    <Switch
-                      checked={configuracoes[item.key as keyof typeof configuracoes] as boolean}
-                      onCheckedChange={(checked) => setConfiguracoes({...configuracoes, [item.key]: checked})}
-                    />
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="idioma">Idioma do Sistema</Label>
-                  <select 
-                    id="idioma"
-                    className="w-full p-2 border rounded-md"
-                    value={configuracoes.idioma}
-                    onChange={(e) => setConfiguracoes({...configuracoes, idioma: e.target.value})}
-                  >
-                    <option value="pt-BR">Português (Brasil)</option>
-                    <option value="en-US">English (US)</option>
-                    <option value="es-ES">Español</option>
-                  </select>
-                </div>
-              </div>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                As configurações de interface são aplicadas localmente no navegador.
+              </p>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
     </div>
   );
-}
+};
+
+export default Configuracoes;
