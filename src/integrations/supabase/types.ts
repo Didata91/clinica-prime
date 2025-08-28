@@ -104,6 +104,75 @@ export type Database = {
           },
         ]
       }
+      app_config: {
+        Row: {
+          agenda_interval_minutes: number
+          allow_overbooking: boolean
+          clinic_name: string | null
+          currency: string
+          id: number
+          timezone: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          agenda_interval_minutes?: number
+          allow_overbooking?: boolean
+          clinic_name?: string | null
+          currency?: string
+          id?: never
+          timezone?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          agenda_interval_minutes?: number
+          allow_overbooking?: boolean
+          clinic_name?: string | null
+          currency?: string
+          id?: never
+          timezone?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      app_schedule_windows: {
+        Row: {
+          end_time: string
+          id: number
+          is_blocked: boolean
+          notes: string | null
+          specific_date: string | null
+          start_time: string
+          updated_at: string
+          updated_by: string | null
+          weekday: number | null
+        }
+        Insert: {
+          end_time: string
+          id?: never
+          is_blocked?: boolean
+          notes?: string | null
+          specific_date?: string | null
+          start_time: string
+          updated_at?: string
+          updated_by?: string | null
+          weekday?: number | null
+        }
+        Update: {
+          end_time?: string
+          id?: never
+          is_blocked?: boolean
+          notes?: string | null
+          specific_date?: string | null
+          start_time?: string
+          updated_at?: string
+          updated_by?: string | null
+          weekday?: number | null
+        }
+        Relationships: []
+      }
       clientes: {
         Row: {
           alergias: string | null
@@ -746,6 +815,10 @@ export type Database = {
       can_access_client: {
         Args: { client_uuid: string; user_uuid: string }
         Returns: boolean
+      }
+      current_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       get_user_role: {
         Args: { user_uuid: string }
