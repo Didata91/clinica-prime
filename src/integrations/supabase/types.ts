@@ -177,6 +177,7 @@ export type Database = {
         Row: {
           alergias: string | null
           bairro: string | null
+          best_contact_period: string | null
           cep: string | null
           cidade: string | null
           complemento: string | null
@@ -188,12 +189,16 @@ export type Database = {
           email: string | null
           id: string
           instagram: string | null
+          instagram_handle: string | null
           logradouro: string | null
           medicamentos_uso: string | null
           nome_completo: string
+          notes: string | null
           numero: string | null
           observacoes: string | null
+          referral_source: string | null
           sexo: Database["public"]["Enums"]["sexo_enum"] | null
+          submission_ts: string | null
           telefone: string
           termo_consentimento_assinado_em: string | null
           uf: string | null
@@ -202,6 +207,7 @@ export type Database = {
         Insert: {
           alergias?: string | null
           bairro?: string | null
+          best_contact_period?: string | null
           cep?: string | null
           cidade?: string | null
           complemento?: string | null
@@ -213,12 +219,16 @@ export type Database = {
           email?: string | null
           id?: string
           instagram?: string | null
+          instagram_handle?: string | null
           logradouro?: string | null
           medicamentos_uso?: string | null
           nome_completo: string
+          notes?: string | null
           numero?: string | null
           observacoes?: string | null
+          referral_source?: string | null
           sexo?: Database["public"]["Enums"]["sexo_enum"] | null
+          submission_ts?: string | null
           telefone: string
           termo_consentimento_assinado_em?: string | null
           uf?: string | null
@@ -227,6 +237,7 @@ export type Database = {
         Update: {
           alergias?: string | null
           bairro?: string | null
+          best_contact_period?: string | null
           cep?: string | null
           cidade?: string | null
           complemento?: string | null
@@ -238,12 +249,16 @@ export type Database = {
           email?: string | null
           id?: string
           instagram?: string | null
+          instagram_handle?: string | null
           logradouro?: string | null
           medicamentos_uso?: string | null
           nome_completo?: string
+          notes?: string | null
           numero?: string | null
           observacoes?: string | null
+          referral_source?: string | null
           sexo?: Database["public"]["Enums"]["sexo_enum"] | null
+          submission_ts?: string | null
           telefone?: string
           termo_consentimento_assinado_em?: string | null
           uf?: string | null
@@ -834,6 +849,14 @@ export type Database = {
       log_sensitive_access: {
         Args: { access_type: string; entity_id: string; entity_type: string }
         Returns: undefined
+      }
+      norm_instagram: {
+        Args: { p: string }
+        Returns: string
+      }
+      only_digits: {
+        Args: { p: string }
+        Returns: string
       }
     }
     Enums: {
