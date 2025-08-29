@@ -2,12 +2,14 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, Plus, Filter, Calendar as CalendarIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Filter, Calendar as CalendarIcon, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAgendamentos } from "@/hooks/useAgendamentos";
 import { useClientes } from "@/hooks/useClientes";
 import { useProfissionais } from "@/hooks/useProfissionais";
 import { useServicos } from "@/hooks/useServicos";
+import { useAppConfig } from "@/hooks/useAppConfig";
+import { generateTimeSlots, isDateAllowed } from "@/lib/scheduleUtils";
 import {
   Dialog,
   DialogContent,
@@ -17,12 +19,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-
-const horarios = Array.from({ length: 18 }, (_, i) => {
-  const hour = Math.floor(8 + i / 2);
-  const minute = i % 2 === 0 ? "00" : "30";
-  return `${hour.toString().padStart(2, "0")}:${minute}`;
-});
 
 const getStatusColor = (status: string) => {
   const colors = {
@@ -39,10 +35,13 @@ export default function Agenda() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedProfissional, setSelectedProfissional] = useState("Todas");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
   const { agendamentos, loading, createAgendamento, updateAgendamentoStatus } = useAgendamentos();
   const { clientes } = useClientes();
   const { profissionais } = useProfissionais();
   const { servicos } = useServicos();
+  const { config, scheduleWindows, loading: configLoading } = useAppConfig();
+  
   const [agendamentoData, setAgendamentoData] = useState({
     cliente_id: "",
     servico_id: "",
@@ -52,6 +51,14 @@ export default function Agenda() {
     data_hora_fim: ""
   });
   const { toast } = useToast();
+
+  // Verificar se a data atual é permitida
+  const isCurrentDateAllowed = isDateAllowed(currentDate, scheduleWindows);
+  
+  // Gerar horários baseados nas janelas de configuração
+  const horarios = isCurrentDateAllowed 
+    ? generateTimeSlots(currentDate, scheduleWindows, config?.agenda_interval_minutes || 30)
+    : [];
 
   const filteredAgendamentos = agendamentos.filter(agendamento => {
     const currentDateStr = currentDate.toISOString().split('T')[0];
@@ -112,7 +119,7 @@ export default function Agenda() {
     setCurrentDate(newDate);
   };
 
-  if (loading) {
+  if (loading || configLoading) {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
@@ -274,53 +281,79 @@ export default function Agenda() {
             {/* Visualização em Timeline */}
             <div>
               <h3 className="font-semibold mb-4">Timeline do Dia</h3>
-              <div className="space-y-2">
-                {horarios.map((horario) => {
-                  const agendamento = filteredAgendamentos.find(a => {
-                    const agendamentoTime = new Date(a.data_hora_inicio);
-                    const timeString = `${agendamentoTime.getHours().toString().padStart(2, '0')}:${agendamentoTime.getMinutes().toString().padStart(2, '0')}`;
-                    return timeString === horario;
-                  });
-                  
-                  return (
-                    <div key={horario} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="font-mono text-sm bg-muted px-2 py-1 rounded min-w-16 text-center">
-                        {horario}
+              {!isCurrentDateAllowed ? (
+                <div className="flex items-center justify-center py-12 text-center">
+                  <div>
+                    <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground font-medium">
+                      Nenhuma janela de atendimento configurada para este dia
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Configure as janelas de agendamento em Configurações
+                    </p>
+                  </div>
+                </div>
+              ) : horarios.length === 0 ? (
+                <div className="flex items-center justify-center py-12 text-center">
+                  <div>
+                    <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground font-medium">
+                      Este dia está bloqueado
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Verifique as configurações de agenda
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {horarios.map((slot) => {
+                    const agendamento = filteredAgendamentos.find(a => {
+                      const agendamentoTime = new Date(a.data_hora_inicio);
+                      const timeString = `${agendamentoTime.getHours().toString().padStart(2, '0')}:${agendamentoTime.getMinutes().toString().padStart(2, '0')}`;
+                      return timeString === slot.time;
+                    });
+                    
+                    return (
+                      <div key={slot.time} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                        <div className="font-mono text-sm bg-muted px-2 py-1 rounded min-w-16 text-center">
+                          {slot.time}
+                        </div>
+                        {agendamento ? (
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="font-medium">{agendamento.clientes?.nome_completo}</p>
+                              <Badge className={getStatusColor(agendamento.status)}>
+                                {agendamento.status}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {agendamento.servicos?.nome} • {agendamento.profissionais?.nome}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {agendamento.salas?.nome || 'Sala não definida'}
+                            </p>
+                            <div className="flex gap-2 mt-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => updateAgendamentoStatus(agendamento.id, 'compareceu')}
+                              >
+                                Check-in
+                              </Button>
+                              <Button variant="ghost" size="sm">Editar</Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex-1 text-muted-foreground text-sm">
+                            Horário disponível
+                          </div>
+                        )}
                       </div>
-                      {agendamento ? (
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-2">
-                            <p className="font-medium">{agendamento.clientes?.nome_completo}</p>
-                            <Badge className={getStatusColor(agendamento.status)}>
-                              {agendamento.status}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {agendamento.servicos?.nome} • {agendamento.profissionais?.nome}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {agendamento.salas?.nome || 'Sala não definida'}
-                          </p>
-                          <div className="flex gap-2 mt-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => updateAgendamentoStatus(agendamento.id, 'compareceu')}
-                            >
-                              Check-in
-                            </Button>
-                            <Button variant="ghost" size="sm">Editar</Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex-1 text-muted-foreground text-sm">
-                          Horário disponível
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Resumo do Dia */}
