@@ -1,22 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Users, DollarSign, TrendingUp, Clock, UserCheck } from "lucide-react";
-
-const mockStats = {
-  agendamentosHoje: 12,
-  clientesTotal: 156,
-  receitaMes: 28500,
-  taxaOcupacao: 78,
-  noShowMes: 5,
-  atendimentosRealizados: 8
-};
-
-const mockAgendamentosHoje = [
-  { id: 1, horario: "09:00", cliente: "Ana Silva", servico: "Botox 30U", profissional: "Dra. Maria", status: "confirmado" },
-  { id: 2, horario: "10:30", cliente: "João Santos", servico: "Harmonização Facial", profissional: "Dra. Carla", status: "solicitado" },
-  { id: 3, horario: "14:00", cliente: "Maria Oliveira", servico: "Preenchimento Labial", profissional: "Dra. Maria", status: "compareceu" },
-  { id: 4, horario: "15:30", cliente: "Pedro Costa", servico: "Rinomodelação", profissional: "Dra. Carla", status: "confirmado" },
-];
+import { Calendar, Users, DollarSign, TrendingUp, Clock, UserCheck, Loader2 } from "lucide-react";
+import { useDashboard } from "@/hooks/useDashboard";
 
 const getStatusColor = (status: string) => {
   const colors = {
@@ -30,6 +15,18 @@ const getStatusColor = (status: string) => {
 };
 
 export default function Dashboard() {
+  const { stats, agendamentosHoje, loading } = useDashboard();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Carregando dashboard...</p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="space-y-6">
       <div>
@@ -47,9 +44,9 @@ export default function Dashboard() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockStats.agendamentosHoje}</div>
+            <div className="text-2xl font-bold">{stats.agendamentosHoje}</div>
             <p className="text-xs text-muted-foreground">
-              {mockStats.atendimentosRealizados} realizados
+              {stats.atendimentosRealizados} realizados
             </p>
           </CardContent>
         </Card>
@@ -60,9 +57,9 @@ export default function Dashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockStats.clientesTotal}</div>
+            <div className="text-2xl font-bold">{stats.clientesTotal}</div>
             <p className="text-xs text-muted-foreground">
-              +12 este mês
+              {stats.clientesTotal > 0 ? 'clientes cadastrados' : 'nenhum cliente cadastrado'}
             </p>
           </CardContent>
         </Card>
@@ -74,10 +71,10 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              R$ {mockStats.receitaMes.toLocaleString('pt-BR')}
+              R$ {stats.receitaMes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground">
-              +18% vs mês anterior
+              receita do mês atual
             </p>
           </CardContent>
         </Card>
@@ -88,9 +85,9 @@ export default function Dashboard() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockStats.taxaOcupacao}%</div>
+            <div className="text-2xl font-bold">{stats.taxaOcupacao}%</div>
             <p className="text-xs text-muted-foreground">
-              +5% vs semana anterior
+              taxa de comparecimento
             </p>
           </CardContent>
         </Card>
@@ -101,9 +98,9 @@ export default function Dashboard() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockStats.noShowMes}</div>
+            <div className="text-2xl font-bold">{stats.noShowMes}</div>
             <p className="text-xs text-muted-foreground">
-              -2 vs mês anterior
+              faltas no mês
             </p>
           </CardContent>
         </Card>
@@ -114,9 +111,9 @@ export default function Dashboard() {
             <UserCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockStats.atendimentosRealizados}</div>
+            <div className="text-2xl font-bold">{stats.atendimentosRealizados}</div>
             <p className="text-xs text-muted-foreground">
-              de {mockStats.agendamentosHoje} agendados
+              de {stats.agendamentosHoje} agendados
             </p>
           </CardContent>
         </Card>
@@ -128,29 +125,36 @@ export default function Dashboard() {
           <CardTitle>Agendamentos de Hoje</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {mockAgendamentosHoje.map((agendamento) => (
-              <div
-                key={agendamento.id}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center space-x-4">
-                  <div className="font-mono text-sm bg-muted px-2 py-1 rounded">
-                    {agendamento.horario}
+          {agendamentosHoje.length === 0 ? (
+            <div className="text-center py-8">
+              <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">Nenhum agendamento para hoje</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {agendamentosHoje.map((agendamento) => (
+                <div
+                  key={agendamento.id}
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className="font-mono text-sm bg-muted px-2 py-1 rounded">
+                      {agendamento.horario}
+                    </div>
+                    <div>
+                      <p className="font-medium">{agendamento.cliente}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {agendamento.servico} • {agendamento.profissional}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium">{agendamento.cliente}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {agendamento.servico} • {agendamento.profissional}
-                    </p>
-                  </div>
+                  <Badge className={getStatusColor(agendamento.status)}>
+                    {agendamento.status}
+                  </Badge>
                 </div>
-                <Badge className={getStatusColor(agendamento.status)}>
-                  {agendamento.status}
-                </Badge>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

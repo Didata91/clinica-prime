@@ -16,7 +16,8 @@ import {
   Eye,
   Edit,
   Image as ImageIcon,
-  Download
+  Download,
+  Loader2
 } from "lucide-react";
 import {
   Table,
@@ -35,75 +36,10 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-
-const mockProntuarios = [
-  {
-    id: 1,
-    clienteNome: "Ana Silva",
-    clienteId: "C001",
-    servico: "Botox 30U",
-    profissional: "Dra. Maria Santos",
-    dataAtendimento: "2024-01-15T14:30:00",
-    status: "finalizado",
-    produtosUtilizados: "Botox Allergan 100U - Lote ABC123",
-    quantidadeUnidades: 30,
-    observacoes: "Paciente respondeu bem ao procedimento. Aplicação na testa e região periocular.",
-    anamnese: {
-      medicamentos: "Nenhum",
-      alergias: "Nenhuma conhecida", 
-      historico: "Primeira aplicação de toxina botulínica",
-      expectativas: "Redução de linhas de expressão"
-    },
-    fotosAntes: ["foto1.jpg", "foto2.jpg"],
-    fotosDepois: [],
-    assinaturaDigital: true,
-    dataFinalizacao: "2024-01-15T15:15:00"
-  },
-  {
-    id: 2,
-    clienteNome: "Carla Oliveira", 
-    clienteId: "C005",
-    servico: "Harmonização Facial Completa",
-    profissional: "Dra. Maria Santos",
-    dataAtendimento: "2024-01-14T10:00:00",
-    status: "em_andamento",
-    produtosUtilizados: "Ácido Hialurônico Juvederm 2ml",
-    quantidadeUnidades: 2,
-    observacoes: "Sessão 1/2 da harmonização. Preenchimento de zigomático realizado.",
-    anamnese: {
-      medicamentos: "Anticoncepcional",
-      alergias: "Nenhuma",
-      historico: "Já fez preenchimento labial há 1 ano",
-      expectativas: "Harmonização geral do rosto"
-    },
-    fotosAntes: ["foto3.jpg"],
-    fotosDepois: [],
-    assinaturaDigital: false,
-    dataFinalizacao: null
-  },
-  {
-    id: 3,
-    clienteNome: "Beatriz Costa",
-    clienteId: "C003",
-    servico: "Preenchimento Labial", 
-    profissional: "Dr. João Silva",
-    dataAtendimento: "2024-01-13T16:00:00",
-    status: "finalizado",
-    produtosUtilizados: "Ácido Hialurônico Restylane 1ml",
-    quantidadeUnidades: 1,
-    observacoes: "Preenchimento sutil conforme solicitado. Excelente resultado.",
-    anamnese: {
-      medicamentos: "Vitamina D",
-      alergias: "Nenhuma",
-      historico: "Primeira vez fazendo preenchimento",
-      expectativas: "Lábios mais definidos e volumosos"
-    },
-    fotosAntes: ["foto4.jpg"],
-    fotosDepois: ["foto5.jpg"],
-    assinaturaDigital: true,
-    dataFinalizacao: "2024-01-13T17:30:00"
-  }
-];
+import { useProntuarios } from "@/hooks/useProntuarios";
+import { useClientes } from "@/hooks/useClientes";
+import { useProfissionais } from "@/hooks/useProfissionais";
+import { useServicos } from "@/hooks/useServicos";
 
 const statusMap = {
   finalizado: { label: "Finalizado", color: "default" as const },
@@ -115,21 +51,26 @@ export default function Prontuarios() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("todos");
   const [selectedProntuario, setSelectedProntuario] = useState<any>(null);
-  const [prontuarios, setProntuarios] = useState(mockProntuarios);
   const [isNewProntuarioOpen, setIsNewProntuarioOpen] = useState(false);
   const [novoProntuarioData, setNovoProntuarioData] = useState({
-    cliente: "",
-    servico: "",
-    profissional: "",
-    dataAtendimento: "",
+    agendamento_id: "",
     medicamentos: "",
     alergias: "",
     historico: "",
     expectativas: "",
-    produtosUtilizados: "",
-    quantidade: "",
+    produtos_utilizados: "",
+    quantidade_unidades: "",
     observacoes: ""
   });
+
+  const { prontuarios, stats, loading: prontuariosLoading } = useProntuarios();
+  const { clientes, loading: clientesLoading } = useClientes();
+  const { profissionais, loading: profissionaisLoading } = useProfissionais();
+  const { servicos, loading: servicosLoading } = useServicos();
+  
+  const { toast } = useToast();
+
+  const loading = prontuariosLoading || clientesLoading || profissionaisLoading || servicosLoading;
 
   const filteredProntuarios = prontuarios.filter(prontuario => {
     const matchSearch = prontuario.clienteNome.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -139,66 +80,20 @@ export default function Prontuarios() {
     return matchSearch && matchStatus;
   });
 
-  const { toast } = useToast();
-
   const formatDateTime = (dateString: string) => {
     return new Date(dateString).toLocaleString('pt-BR');
   };
 
-  const handleSaveProntuario = (status: 'rascunho' | 'finalizado') => {
-    if (!novoProntuarioData.cliente || !novoProntuarioData.servico || !novoProntuarioData.profissional || !novoProntuarioData.dataAtendimento) {
-      toast({
-        title: "Erro",
-        description: "Preencha todos os campos obrigatórios",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const novoProntuario = {
-      id: prontuarios.length + 1,
-      clienteNome: novoProntuarioData.cliente,
-      clienteId: `C${String(prontuarios.length + 1).padStart(3, '0')}`,
-      servico: novoProntuarioData.servico,
-      profissional: novoProntuarioData.profissional,
-      dataAtendimento: novoProntuarioData.dataAtendimento,
-      status: status === 'finalizado' ? 'finalizado' : 'em_andamento',
-      produtosUtilizados: novoProntuarioData.produtosUtilizados,
-      quantidadeUnidades: parseInt(novoProntuarioData.quantidade) || 0,
-      observacoes: novoProntuarioData.observacoes,
-      anamnese: {
-        medicamentos: novoProntuarioData.medicamentos,
-        alergias: novoProntuarioData.alergias,
-        historico: novoProntuarioData.historico,
-        expectativas: novoProntuarioData.expectativas
-      },
-      fotosAntes: [],
-      fotosDepois: [],
-      assinaturaDigital: status === 'finalizado',
-      dataFinalizacao: status === 'finalizado' ? new Date().toISOString() : null
-    };
-
-    setProntuarios([...prontuarios, novoProntuario]);
-    toast({
-      title: "Sucesso",
-      description: `Prontuário ${status === 'finalizado' ? 'finalizado' : 'salvo como rascunho'} com sucesso!`,
-    });
-
-    setNovoProntuarioData({
-      cliente: "",
-      servico: "",
-      profissional: "",
-      dataAtendimento: "",
-      medicamentos: "",
-      alergias: "",
-      historico: "",
-      expectativas: "",
-      produtosUtilizados: "",
-      quantidade: "",
-      observacoes: ""
-    });
-    setIsNewProntuarioOpen(false);
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Carregando prontuários...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -222,129 +117,77 @@ export default function Prontuarios() {
               <DialogTitle>Criar Novo Prontuário</DialogTitle>
             </DialogHeader>
             
-            <Tabs defaultValue="dados" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="dados">Dados Básicos</TabsTrigger>
-                <TabsTrigger value="anamnese">Anamnese</TabsTrigger>
-                <TabsTrigger value="procedimento">Procedimento</TabsTrigger>
-                <TabsTrigger value="fotos">Fotos</TabsTrigger>
-              </TabsList>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Cliente *</label>
+                  <select 
+                    className="w-full p-2 border rounded-md"
+                    value={novoProntuarioData.agendamento_id}
+                    onChange={(e) => setNovoProntuarioData({...novoProntuarioData, agendamento_id: e.target.value})}
+                  >
+                    <option value="">Selecione o agendamento</option>
+                    {/* Aqui deveríamos listar agendamentos disponíveis para criação de prontuário */}
+                  </select>
+                  <p className="text-xs text-muted-foreground">
+                    Selecione um agendamento para criar o prontuário
+                  </p>
+                </div>
+              </div>
               
-              <TabsContent value="dados" className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Cliente *</label>
-                    <select 
-                      className="w-full p-2 border rounded-md"
-                      value={novoProntuarioData.cliente}
-                      onChange={(e) => setNovoProntuarioData({...novoProntuarioData, cliente: e.target.value})}
-                    >
-                      <option value="">Selecione o cliente</option>
-                      <option value="Ana Silva">Ana Silva</option>
-                      <option value="Beatriz Costa">Beatriz Costa</option>
-                      <option value="Carla Oliveira">Carla Oliveira</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Serviço *</label>
-                    <select className="w-full p-2 border rounded-md">
-                      <option value="">Selecione o serviço</option>
-                      <option value="botox">Botox 30U</option>
-                      <option value="preenchimento">Preenchimento Labial</option>
-                      <option value="harmonizacao">Harmonização Facial</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Profissional *</label>
-                    <select className="w-full p-2 border rounded-md">
-                      <option value="">Selecione o profissional</option>
-                      <option value="dra-maria">Dra. Maria Santos</option>
-                      <option value="dr-joao">Dr. João Silva</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Data/Hora do Atendimento *</label>
-                    <Input type="datetime-local" />
-                  </div>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Medicamentos em uso</label>
+                  <Textarea 
+                    placeholder="Liste os medicamentos que o paciente está utilizando..."
+                    value={novoProntuarioData.medicamentos}
+                    onChange={(e) => setNovoProntuarioData({...novoProntuarioData, medicamentos: e.target.value})}
+                  />
                 </div>
-              </TabsContent>
-
-              <TabsContent value="anamnese" className="space-y-4">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Medicamentos em uso</label>
-                    <Textarea placeholder="Liste os medicamentos que o paciente está utilizando..." />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Alergias conhecidas</label>
-                    <Textarea placeholder="Descreva alergias ou reações conhecidas..." />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Histórico de procedimentos</label>
-                    <Textarea placeholder="Histórico de procedimentos estéticos anteriores..." />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Expectativas do cliente</label>
-                    <Textarea placeholder="Objetivos e expectativas com o procedimento..." />
-                  </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Alergias conhecidas</label>
+                  <Textarea 
+                    placeholder="Descreva alergias ou reações conhecidas..."
+                    value={novoProntuarioData.alergias}
+                    onChange={(e) => setNovoProntuarioData({...novoProntuarioData, alergias: e.target.value})}
+                  />
                 </div>
-              </TabsContent>
-
-              <TabsContent value="procedimento" className="space-y-4">
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Produtos utilizados</label>
-                      <Input placeholder="Ex: Botox Allergan 100U - Lote ABC123" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Quantidade (unidades/ml)</label>
-                      <Input type="number" placeholder="30" />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Observações do procedimento</label>
-                    <Textarea 
-                      placeholder="Descreva o procedimento realizado, técnicas utilizadas, intercorrências..." 
-                      rows={4}
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Produtos utilizados</label>
+                  <Input 
+                    placeholder="Ex: Botox Allergan 100U - Lote ABC123"
+                    value={novoProntuarioData.produtos_utilizados}
+                    onChange={(e) => setNovoProntuarioData({...novoProntuarioData, produtos_utilizados: e.target.value})}
+                  />
                 </div>
-              </TabsContent>
-
-              <TabsContent value="fotos" className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <h3 className="font-medium">Fotos Antes</h3>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                      <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
-                      <p className="mt-2 text-sm text-gray-600">
-                        Clique para adicionar fotos do antes
-                      </p>
-                      <Button variant="outline" className="mt-2">
-                        Selecionar Fotos
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <h3 className="font-medium">Fotos Depois</h3>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                      <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
-                      <p className="mt-2 text-sm text-gray-600">
-                        Clique para adicionar fotos do depois
-                      </p>
-                      <Button variant="outline" className="mt-2">
-                        Selecionar Fotos
-                      </Button>
-                    </div>
-                  </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Quantidade (unidades/ml)</label>
+                  <Input 
+                    type="number" 
+                    placeholder="30"
+                    value={novoProntuarioData.quantidade_unidades}
+                    onChange={(e) => setNovoProntuarioData({...novoProntuarioData, quantidade_unidades: e.target.value})}
+                  />
                 </div>
-              </TabsContent>
-            </Tabs>
-
-            <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button variant="outline" onClick={() => handleSaveProntuario('rascunho')}>Salvar Rascunho</Button>
-              <Button onClick={() => handleSaveProntuario('finalizado')}>Finalizar Prontuário</Button>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Observações do procedimento</label>
+                  <Textarea 
+                    placeholder="Descreva o procedimento realizado, técnicas utilizadas, intercorrências..." 
+                    rows={4}
+                    value={novoProntuarioData.observacoes}
+                    onChange={(e) => setNovoProntuarioData({...novoProntuarioData, observacoes: e.target.value})}
+                  />
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button variant="outline" onClick={() => setIsNewProntuarioOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button disabled>
+                  Criar Prontuário
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
@@ -358,8 +201,8 @@ export default function Prontuarios() {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">127</div>
-            <p className="text-xs text-muted-foreground">+12 este mês</p>
+            <div className="text-2xl font-bold">{stats.total}</div>
+            <p className="text-xs text-muted-foreground">prontuários registrados</p>
           </CardContent>
         </Card>
         
@@ -369,8 +212,10 @@ export default function Prontuarios() {
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">98</div>
-            <p className="text-xs text-muted-foreground">77% do total</p>
+            <div className="text-2xl font-bold">{stats.finalizados}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats.total > 0 ? Math.round((stats.finalizados / stats.total) * 100) : 0}% do total
+            </p>
           </CardContent>
         </Card>
 
@@ -380,8 +225,10 @@ export default function Prontuarios() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">18</div>
-            <p className="text-xs text-muted-foreground">14% do total</p>
+            <div className="text-2xl font-bold">{stats.emAndamento}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats.total > 0 ? Math.round((stats.emAndamento / stats.total) * 100) : 0}% do total
+            </p>
           </CardContent>
         </Card>
 
@@ -391,8 +238,10 @@ export default function Prontuarios() {
             <AlertCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">11</div>
-            <p className="text-xs text-muted-foreground">9% do total</p>
+            <div className="text-2xl font-bold">{stats.pendentes}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats.total > 0 ? Math.round((stats.pendentes / stats.total) * 100) : 0}% do total
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -425,191 +274,68 @@ export default function Prontuarios() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Serviço</TableHead>
-                  <TableHead>Profissional</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProntuarios.map((prontuario) => (
-                  <TableRow key={prontuario.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{prontuario.clienteNome}</p>
-                          <p className="text-xs text-muted-foreground">{prontuario.clienteId}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{prontuario.servico}</TableCell>
-                    <TableCell>{prontuario.profissional}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{formatDateTime(prontuario.dataAtendimento)}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={statusMap[prontuario.status as keyof typeof statusMap].color}>
-                        {statusMap[prontuario.status as keyof typeof statusMap].label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => setSelectedProntuario(prontuario)}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          Ver
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <Edit className="h-4 w-4 mr-1" />
-                          Editar
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <Download className="h-4 w-4 mr-1" />
-                          PDF
-                        </Button>
-                      </div>
-                    </TableCell>
+          {filteredProntuarios.length === 0 ? (
+            <div className="text-center py-8">
+              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">
+                {prontuarios.length === 0 
+                  ? "Nenhum prontuário cadastrado" 
+                  : "Nenhum prontuário encontrado com os filtros aplicados"}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Serviço</TableHead>
+                    <TableHead>Profissional</TableHead>
+                    <TableHead>Data Atendimento</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Ações</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {filteredProntuarios.map((prontuario) => (
+                    <TableRow key={prontuario.id}>
+                      <TableCell className="font-medium">{prontuario.clienteNome}</TableCell>
+                      <TableCell>{prontuario.servico}</TableCell>
+                      <TableCell>{prontuario.profissional}</TableCell>
+                      <TableCell>
+                        {prontuario.dataAtendimento ? formatDateTime(prontuario.dataAtendimento) : 'N/A'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={statusMap[prontuario.status as keyof typeof statusMap]?.color || "outline"}>
+                          {statusMap[prontuario.status as keyof typeof statusMap]?.label || prontuario.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => setSelectedProntuario(prontuario)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => setSelectedProntuario(prontuario)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
-
-      {/* Dialog para visualizar prontuário */}
-      <Dialog open={!!selectedProntuario} onOpenChange={() => setSelectedProntuario(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          {selectedProntuario && (
-            <>
-              <DialogHeader>
-                <DialogTitle>Prontuário - {selectedProntuario.clienteNome}</DialogTitle>
-              </DialogHeader>
-              
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Dados do Atendimento</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div>
-                        <p className="text-sm font-medium">Cliente:</p>
-                        <p className="text-sm text-muted-foreground">{selectedProntuario.clienteNome} ({selectedProntuario.clienteId})</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">Serviço:</p>
-                        <p className="text-sm text-muted-foreground">{selectedProntuario.servico}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">Profissional:</p>
-                        <p className="text-sm text-muted-foreground">{selectedProntuario.profissional}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">Data do Atendimento:</p>
-                        <p className="text-sm text-muted-foreground">{formatDateTime(selectedProntuario.dataAtendimento)}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Anamnese</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div>
-                        <p className="text-sm font-medium">Medicamentos:</p>
-                        <p className="text-sm text-muted-foreground">{selectedProntuario.anamnese.medicamentos}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">Alergias:</p>
-                        <p className="text-sm text-muted-foreground">{selectedProntuario.anamnese.alergias}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">Histórico:</p>
-                        <p className="text-sm text-muted-foreground">{selectedProntuario.anamnese.historico}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Procedimento Realizado</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div>
-                      <p className="text-sm font-medium">Produtos Utilizados:</p>
-                      <p className="text-sm text-muted-foreground">{selectedProntuario.produtosUtilizados}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Quantidade:</p>
-                      <p className="text-sm text-muted-foreground">{selectedProntuario.quantidadeUnidades} unidades</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Observações:</p>
-                      <p className="text-sm text-muted-foreground">{selectedProntuario.observacoes}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Fotos Antes ({selectedProntuario.fotosAntes.length})</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-2 gap-2">
-                        {selectedProntuario.fotosAntes.map((foto: string, index: number) => (
-                          <div key={index} className="bg-gray-100 rounded-lg p-4 text-center">
-                            <ImageIcon className="h-8 w-8 mx-auto text-gray-400" />
-                            <p className="text-xs text-muted-foreground mt-1">{foto}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Fotos Depois ({selectedProntuario.fotosDepois.length})</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-2 gap-2">
-                        {selectedProntuario.fotosDepois.length > 0 ? (
-                          selectedProntuario.fotosDepois.map((foto: string, index: number) => (
-                            <div key={index} className="bg-gray-100 rounded-lg p-4 text-center">
-                              <ImageIcon className="h-8 w-8 mx-auto text-gray-400" />
-                              <p className="text-xs text-muted-foreground mt-1">{foto}</p>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-sm text-muted-foreground col-span-2 text-center py-4">
-                            Ainda não há fotos pós-procedimento
-                          </p>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

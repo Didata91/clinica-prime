@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { 
   BarChart3, 
@@ -17,7 +16,8 @@ import {
   Activity,
   Clock,
   Star,
-  Target
+  Target,
+  Loader2
 } from "lucide-react";
 import {
   Table,
@@ -28,52 +28,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-const mockDadosFinanceiros = {
-  faturamentoMensal: [
-    { mes: "Jul", valor: 8500 },
-    { mes: "Ago", valor: 9200 },
-    { mes: "Set", valor: 7800 },
-    { mes: "Out", valor: 11500 },
-    { mes: "Nov", valor: 12300 },
-    { mes: "Dez", valor: 15600 },
-    { mes: "Jan", valor: 13400 }
-  ],
-  servicosMaisRealizados: [
-    { servico: "Botox", quantidade: 45, faturamento: 22500 },
-    { servico: "Preenchimento Labial", quantidade: 32, faturamento: 25600 },
-    { servico: "Harmonização Facial", quantidade: 18, faturamento: 21600 },
-    { servico: "Rinomodelação", quantidade: 12, faturamento: 12000 },
-    { servico: "Skinbooster", quantidade: 8, faturamento: 6400 }
-  ],
-  clientesMaisAtivos: [
-    { cliente: "Ana Silva", procedimentos: 8, gasto: 4200 },
-    { cliente: "Beatriz Costa", procedimentos: 6, gasto: 3800 },
-    { cliente: "Carla Oliveira", procedimentos: 5, gasto: 5500 },
-    { cliente: "Diana Rocha", procedimentos: 4, gasto: 2800 },
-    { cliente: "Eva Santos", procedimentos: 3, gasto: 3200 }
-  ]
-};
-
-const mockDadosOperacionais = {
-  agendamentosPorDia: [
-    { dia: "Seg", agendamentos: 12, taxa_ocupacao: 75 },
-    { dia: "Ter", agendamentos: 15, taxa_ocupacao: 94 },
-    { dia: "Qua", agendamentos: 11, taxa_ocupacao: 69 },
-    { dia: "Qui", agendamentos: 14, taxa_ocupacao: 88 },
-    { dia: "Sex", agendamentos: 16, taxa_ocupacao: 100 },
-    { dia: "Sab", agendamentos: 8, taxa_ocupacao: 67 }
-  ],
-  profissionaisPerformance: [
-    { profissional: "Dra. Maria Santos", atendimentos: 85, faturamento: 42500, avaliacaoMedia: 4.9 },
-    { profissional: "Dr. João Silva", atendimentos: 67, faturamento: 33500, avaliacaoMedia: 4.7 },
-    { profissional: "Dra. Paula Costa", atendimentos: 23, faturamento: 11500, avaliacaoMedia: 4.8 }
-  ]
-};
+import { useRelatorios } from "@/hooks/useRelatorios";
 
 export default function Relatorios() {
   const [periodoSelecionado, setPeriodoSelecionado] = useState("mes_atual");
-  const [tipoRelatorio, setTipoRelatorio] = useState("financeiro");
+  const { dadosFinanceiros, dadosOperacionais, stats, loading } = useRelatorios(periodoSelecionado);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -82,22 +41,25 @@ export default function Relatorios() {
     }).format(price);
   };
 
-  const calcularTotalFaturamento = () => {
-    return mockDadosFinanceiros.servicosMaisRealizados.reduce((acc, curr) => acc + curr.faturamento, 0);
-  };
-
-  const calcularTotalAtendimentos = () => {
-    return mockDadosFinanceiros.servicosMaisRealizados.reduce((acc, curr) => acc + curr.quantidade, 0);
-  };
-
   const calcularTaxaCrescimento = () => {
-    const faturamento = mockDadosFinanceiros.faturamentoMensal;
+    const faturamento = dadosFinanceiros.faturamentoMensal;
     if (faturamento.length < 2) return 0;
     
-    const atual = faturamento[faturamento.length - 1].valor;
-    const anterior = faturamento[faturamento.length - 2].valor;
-    return ((atual - anterior) / anterior) * 100;
+    const atual = faturamento[faturamento.length - 1]?.valor || 0;
+    const anterior = faturamento[faturamento.length - 2]?.valor || 0;
+    return anterior > 0 ? ((atual - anterior) / anterior) * 100 : 0;
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Carregando relatórios...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -122,11 +84,10 @@ export default function Relatorios() {
             <option value="ano">Este Ano</option>
           </select>
           <Button variant="outline" onClick={() => {
-            // Simular exportação
             const dataStr = JSON.stringify({
               periodo: periodoSelecionado,
-              financeiro: mockDadosFinanceiros,
-              operacional: mockDadosOperacionais,
+              financeiro: dadosFinanceiros,
+              operacional: dadosOperacionais,
               exportadoEm: new Date().toISOString()
             }, null, 2);
             
@@ -157,7 +118,7 @@ export default function Relatorios() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {formatPrice(calcularTotalFaturamento())}
+              {formatPrice(stats.faturamentoTotal)}
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               {calcularTaxaCrescimento() > 0 ? (
@@ -166,7 +127,7 @@ export default function Relatorios() {
                 <TrendingDown className="h-3 w-3 text-red-500" />
               )}
               <span className={calcularTaxaCrescimento() > 0 ? "text-green-500" : "text-red-500"}>
-                {Math.abs(calcularTaxaCrescimento()).toFixed(1)}% vs mês anterior
+                {Math.abs(calcularTaxaCrescimento()).toFixed(1)}% vs período anterior
               </span>
             </div>
           </CardContent>
@@ -180,8 +141,8 @@ export default function Relatorios() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{calcularTotalAtendimentos()}</div>
-            <p className="text-xs text-muted-foreground">+8% em relação ao mês anterior</p>
+            <div className="text-2xl font-bold text-blue-600">{stats.totalAtendimentos}</div>
+            <p className="text-xs text-muted-foreground">procedimentos realizados</p>
           </CardContent>
         </Card>
 
@@ -193,8 +154,8 @@ export default function Relatorios() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">87</div>
-            <p className="text-xs text-muted-foreground">23 novos clientes este mês</p>
+            <div className="text-2xl font-bold text-purple-600">{stats.clientesAtivos}</div>
+            <p className="text-xs text-muted-foreground">clientes com atendimentos</p>
           </CardContent>
         </Card>
 
@@ -206,8 +167,8 @@ export default function Relatorios() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-amber-600">82%</div>
-            <p className="text-xs text-muted-foreground">Meta: 85%</p>
+            <div className="text-2xl font-bold text-amber-600">{stats.taxaOcupacao}%</div>
+            <p className="text-xs text-muted-foreground">ocupação média</p>
           </CardContent>
         </Card>
       </div>
@@ -231,22 +192,29 @@ export default function Relatorios() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {mockDadosFinanceiros.faturamentoMensal.map((item, index) => (
-                    <div key={index} className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">{item.mes}</span>
-                        <span className="text-sm text-muted-foreground">{formatPrice(item.valor)}</span>
+                {dadosFinanceiros.faturamentoMensal.length === 0 ? (
+                  <div className="text-center py-8">
+                    <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">Nenhum dado de faturamento encontrado</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {dadosFinanceiros.faturamentoMensal.map((item, index) => (
+                      <div key={index} className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium">{item.mes}</span>
+                          <span className="text-sm text-muted-foreground">{formatPrice(item.valor)}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-300" 
+                            style={{width: `${Math.max((item.valor / Math.max(...dadosFinanceiros.faturamentoMensal.map(f => f.valor))) * 100, 5)}%`}}
+                          ></div>
+                        </div>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-300" 
-                          style={{width: `${(item.valor / 16000) * 100}%`}}
-                        ></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -259,65 +227,36 @@ export default function Relatorios() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {mockDadosFinanceiros.servicosMaisRealizados.map((servico, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                      <div>
-                        <p className="font-medium">{servico.servico}</p>
-                        <p className="text-sm text-muted-foreground">{servico.quantidade} procedimentos</p>
+                {dadosFinanceiros.servicosMaisRealizados.length === 0 ? (
+                  <div className="text-center py-8">
+                    <PieChart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">Nenhum serviço encontrado</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {dadosFinanceiros.servicosMaisRealizados.map((servico, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                        <div>
+                          <p className="font-medium">{servico.servico}</p>
+                          <p className="text-sm text-muted-foreground">{servico.quantidade} procedimentos</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium">{formatPrice(servico.faturamento)}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {servico.quantidade > 0 ? formatPrice(servico.faturamento / servico.quantidade) : formatPrice(0)} /proc.
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-medium">{formatPrice(servico.faturamento)}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {formatPrice(servico.faturamento / servico.quantidade)} /proc.
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
         <TabsContent value="operacional" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Taxa de Ocupação por Dia */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Ocupação Semanal
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {mockDadosOperacionais.agendamentosPorDia.map((dia, index) => (
-                    <div key={index} className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">{dia.dia}</span>
-                        <div className="flex items-center gap-4">
-                          <span className="text-sm text-muted-foreground">{dia.agendamentos} agend.</span>
-                          <Badge variant={dia.taxa_ocupacao >= 90 ? "default" : dia.taxa_ocupacao >= 70 ? "secondary" : "outline"}>
-                            {dia.taxa_ocupacao}%
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className={`h-2 rounded-full transition-all duration-300 ${
-                            dia.taxa_ocupacao >= 90 ? 'bg-green-500' : 
-                            dia.taxa_ocupacao >= 70 ? 'bg-amber-500' : 'bg-red-500'
-                          }`}
-                          style={{width: `${dia.taxa_ocupacao}%`}}
-                        ></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
+          <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
             {/* Performance dos Profissionais */}
             <Card>
               <CardHeader>
@@ -327,29 +266,36 @@ export default function Relatorios() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {mockDadosOperacionais.profissionaisPerformance.map((prof, index) => (
-                    <div key={index} className="p-3 bg-muted/50 rounded-lg space-y-2">
-                      <div className="flex justify-between items-start">
-                        <p className="font-medium">{prof.profissional}</p>
-                        <div className="flex items-center gap-1">
-                          <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                          <span className="text-sm">{prof.avaliacaoMedia}</span>
+                {dadosOperacionais.profissionaisPerformance.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Star className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">Nenhum dado de performance encontrado</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {dadosOperacionais.profissionaisPerformance.map((prof, index) => (
+                      <div key={index} className="p-3 bg-muted/50 rounded-lg space-y-2">
+                        <div className="flex justify-between items-start">
+                          <p className="font-medium">{prof.profissional}</p>
+                          <div className="flex items-center gap-1">
+                            <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                            <span className="text-sm">{prof.avaliacaoMedia.toFixed(1)}</span>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <p className="text-muted-foreground">Atendimentos:</p>
+                            <p className="font-medium">{prof.atendimentos}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Faturamento:</p>
+                            <p className="font-medium">{formatPrice(prof.faturamento)}</p>
+                          </div>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">Atendimentos:</p>
-                          <p className="font-medium">{prof.atendimentos}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Faturamento:</p>
-                          <p className="font-medium">{formatPrice(prof.faturamento)}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -364,32 +310,39 @@ export default function Relatorios() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Procedimentos</TableHead>
-                    <TableHead>Valor Investido</TableHead>
-                    <TableHead>Ticket Médio</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mockDadosFinanceiros.clientesMaisAtivos.map((cliente, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium">{cliente.cliente}</TableCell>
-                      <TableCell>{cliente.procedimentos}</TableCell>
-                      <TableCell>{formatPrice(cliente.gasto)}</TableCell>
-                      <TableCell>{formatPrice(cliente.gasto / cliente.procedimentos)}</TableCell>
-                      <TableCell>
-                        <Badge variant={index < 3 ? "default" : "secondary"}>
-                          {index < 3 ? "VIP" : "Regular"}
-                        </Badge>
-                      </TableCell>
+              {dadosFinanceiros.clientesMaisAtivos.length === 0 ? (
+                <div className="text-center py-8">
+                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Nenhum cliente ativo encontrado</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Procedimentos</TableHead>
+                      <TableHead>Valor Investido</TableHead>
+                      <TableHead>Ticket Médio</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {dadosFinanceiros.clientesMaisAtivos.map((cliente, index) => (
+                      <TableRow key={index}>
+                        <TableCell className="font-medium">{cliente.cliente}</TableCell>
+                        <TableCell>{cliente.procedimentos}</TableCell>
+                        <TableCell>{formatPrice(cliente.gasto)}</TableCell>
+                        <TableCell>{cliente.procedimentos > 0 ? formatPrice(cliente.gasto / cliente.procedimentos) : formatPrice(0)}</TableCell>
+                        <TableCell>
+                          <Badge variant={index < 3 ? "default" : "secondary"}>
+                            {index < 3 ? "VIP" : "Regular"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -403,56 +356,40 @@ export default function Relatorios() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Posição</TableHead>
-                    <TableHead>Serviço</TableHead>
-                    <TableHead>Quantidade</TableHead>
-                    <TableHead>Faturamento</TableHead>
-                    <TableHead>Valor Médio</TableHead>
-                    <TableHead>Participação</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mockDadosFinanceiros.servicosMaisRealizados.map((servico, index) => {
-                    const totalFaturamento = calcularTotalFaturamento();
-                    const participacao = (servico.faturamento / totalFaturamento) * 100;
-                    
-                    return (
-                      <TableRow key={index}>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
-                              index === 0 ? 'bg-yellow-100 text-yellow-800' :
-                              index === 1 ? 'bg-gray-100 text-gray-800' :
-                              index === 2 ? 'bg-amber-100 text-amber-800' :
-                              'bg-muted text-muted-foreground'
-                            }`}>
-                              {index + 1}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-medium">{servico.servico}</TableCell>
-                        <TableCell>{servico.quantidade}</TableCell>
-                        <TableCell>{formatPrice(servico.faturamento)}</TableCell>
-                        <TableCell>{formatPrice(servico.faturamento / servico.quantidade)}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className="w-12 bg-gray-200 rounded-full h-2">
-                              <div 
-                                className="bg-blue-600 h-2 rounded-full" 
-                                style={{width: `${participacao}%`}}
-                              ></div>
-                            </div>
-                            <span className="text-sm">{participacao.toFixed(1)}%</span>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+              {dadosFinanceiros.servicosMaisRealizados.length === 0 ? (
+                <div className="text-center py-8">
+                  <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Nenhum serviço encontrado</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Posição</TableHead>
+                      <TableHead>Serviço</TableHead>
+                      <TableHead>Quantidade</TableHead>
+                      <TableHead>Faturamento</TableHead>
+                      <TableHead>Valor Médio</TableHead>
+                      <TableHead>Participação</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {dadosFinanceiros.servicosMaisRealizados.map((servico, index) => {
+                      const participacao = stats.faturamentoTotal > 0 ? (servico.faturamento / stats.faturamentoTotal) * 100 : 0;
+                      return (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium">#{index + 1}</TableCell>
+                          <TableCell>{servico.servico}</TableCell>
+                          <TableCell>{servico.quantidade}</TableCell>
+                          <TableCell>{formatPrice(servico.faturamento)}</TableCell>
+                          <TableCell>{servico.quantidade > 0 ? formatPrice(servico.faturamento / servico.quantidade) : formatPrice(0)}</TableCell>
+                          <TableCell>{participacao.toFixed(1)}%</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
