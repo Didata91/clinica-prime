@@ -2,18 +2,21 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, Clock, Plus, Users } from 'lucide-react';
+import { AlertCircle, Clock, Plus, Users, Edit, User, Stethoscope } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TimeSlot } from '@/hooks/useAgenda';
 import { ModalAgendamento } from './ModalAgendamento';
+import { ModalEditarAgendamento } from './ModalEditarAgendamento';
 
 interface PainelSlotsProps {
   selectedDate: Date | null;
   daySlots: TimeSlot[];
   dayAppointments: any[];
   onCreateAgendamento: (data: any) => Promise<boolean>;
+  onUpdateAgendamento: (id: string, data: any) => Promise<any>;
   allowOverbooking: boolean;
+  config?: any;
 }
 
 const getStatusColor = (status: string) => {
@@ -32,19 +35,24 @@ export const PainelSlots: React.FC<PainelSlotsProps> = ({
   daySlots,
   dayAppointments,
   onCreateAgendamento,
+  onUpdateAgendamento,
   allowOverbooking,
+  config,
 }) => {
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedAgendamento, setSelectedAgendamento] = useState<any>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const handleSlotClick = (slot: TimeSlot) => {
-    if (slot.occupied && !allowOverbooking) return;
-    
     if (slot.occupied) {
-      // Mostrar detalhes do agendamento existente
-      // TODO: Implementar modal de detalhes/edição
+      // Abrir modal de edição para agendamento existente
+      setSelectedAgendamento(slot.agendamento);
+      setIsEditModalOpen(true);
       return;
     }
+    
+    if (!slot.available) return;
     
     // Abrir modal para novo agendamento
     setSelectedSlot(slot.time);
@@ -160,25 +168,31 @@ export const PainelSlots: React.FC<PainelSlotsProps> = ({
                     {slot.time}
                   </div>
                   
-                  {agendamento ? (
+                  {slot.agendamento ? (
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-2">
-                        <p className="font-medium">{agendamento.clientes?.nome_completo}</p>
-                        <Badge className={getStatusColor(agendamento.status)}>
-                          {agendamento.status}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <p className="font-medium">{slot.agendamento.cliente_nome}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge className={getStatusColor(slot.agendamento.status)}>
+                            {slot.agendamento.status}
+                          </Badge>
+                          <Button variant="ghost" size="sm" onClick={() => handleSlotClick(slot)}>
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {agendamento.servicos?.nome} • {agendamento.profissionais?.nome}
-                      </p>
-                      {agendamento.salas?.nome && (
-                        <p className="text-sm text-muted-foreground">
-                          {agendamento.salas.nome}
-                        </p>
-                      )}
-                      {allowOverbooking && (
-                        <p className="text-xs text-amber-600 mt-1">
-                          Clique para sobrepor agendamento
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                        <Stethoscope className="h-3 w-3" />
+                        <span>{slot.agendamento.servico_nome}</span>
+                        <span>•</span>
+                        <span>{slot.agendamento.profissional_nome}</span>
+                      </div>
+                      {slot.agendamento.observacoes && (
+                        <p className="text-xs text-muted-foreground italic">
+                          {slot.agendamento.observacoes}
                         </p>
                       )}
                     </div>
@@ -226,6 +240,17 @@ export const PainelSlots: React.FC<PainelSlotsProps> = ({
         selectedDate={selectedDate}
         selectedTime={selectedSlot}
         onSubmit={handleCreateAgendamento}
+      />
+
+      <ModalEditarAgendamento
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedAgendamento(null);
+        }}
+        agendamento={selectedAgendamento}
+        onUpdate={onUpdateAgendamento}
+        config={config}
       />
     </>
   );

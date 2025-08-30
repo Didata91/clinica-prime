@@ -3,9 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Mail, Phone, UserCheck, Clock, Calendar } from "lucide-react";
+import { Search, Plus, Mail, Phone, UserCheck, Clock, Calendar, Users, Edit2, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useProfissionais } from "@/hooks/useProfissionais";
+import { useProfissionaisAgenda } from "@/hooks/useProfissionaisAgenda";
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import {
   Table,
   TableBody,
@@ -37,7 +40,13 @@ const especialidadesDisponiveis = [
 export default function Profissionais() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { profissionais, loading, createProfissional, updateProfissional, toggleProfissionalStatus } = useProfissionais();
+  const [filtros, setFiltros] = useState({
+    periodo: 'semana' as 'hoje' | 'semana' | 'mes',
+    servico_id: 'todos'
+  });
+  
+  const { profissionais: profissionaisBasicos, loading, createProfissional, updateProfissional, toggleProfissionalStatus } = useProfissionais();
+  const { profissionais: profissionaisComAgenda, loading: agendaLoading } = useProfissionaisAgenda(filtros);
   const [formData, setFormData] = useState({
     nome: "",
     conselho_registro: "",
@@ -56,7 +65,8 @@ export default function Profissionais() {
   });
   const { toast } = useToast();
   
-  const filteredProfissionais = profissionais.filter(profissional =>
+  
+  const filteredProfissionais = profissionaisComAgenda.filter(profissional =>
     profissional.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (profissional.conselho_registro && profissional.conselho_registro.toLowerCase().includes(searchTerm.toLowerCase())) ||
     profissional.especialidades.some(esp => esp.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -123,7 +133,7 @@ export default function Profissionais() {
     }
   };
 
-  if (loading) {
+  if (loading || agendaLoading) {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
@@ -361,12 +371,12 @@ export default function Profissionais() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">0 agendamentos</span>
-                      </div>
-                    </TableCell>
+                     <TableCell>
+                       <div className="flex items-center gap-2">
+                         <Calendar className="h-4 w-4 text-muted-foreground" />
+                         <span className="text-sm">{profissional.countHoje} hoje / {profissional.countSemana} semana</span>
+                       </div>
+                     </TableCell>
                     <TableCell>
                       <Badge variant={profissional.ativo ? "default" : "secondary"}>
                         {profissional.ativo ? "Ativo" : "Inativo"}
@@ -419,23 +429,49 @@ export default function Profissionais() {
                   </div>
                 </div>
                 
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Agenda de Hoje</h4>
-                  <div className="flex items-center gap-2">
-                    <UserCheck className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">0 pacientes agendados</span>
-                  </div>
-                </div>
+                 <div>
+                   <h4 className="text-sm font-medium mb-2">Próximos Atendimentos</h4>
+                   <div className="space-y-2">
+                     {profissional.proximosAtendimentos.length > 0 ? (
+                       profissional.proximosAtendimentos.slice(0, 3).map((atendimento, idx) => (
+                         <div key={idx} className="flex items-center justify-between text-sm">
+                           <div>
+                             <p className="font-medium">{atendimento.cliente_nome}</p>
+                             <p className="text-xs text-muted-foreground">
+                               {atendimento.servico_nome}
+                             </p>
+                           </div>
+                           <div className="text-right">
+                             <p className="text-xs">
+                               {format(new Date(atendimento.data_hora_inicio), 'dd/MM', { locale: ptBR })}
+                             </p>
+                             <p className="text-xs text-muted-foreground">
+                               {format(new Date(atendimento.data_hora_inicio), 'HH:mm', { locale: ptBR })}
+                             </p>
+                           </div>
+                         </div>
+                       ))
+                     ) : (
+                       <div className="flex items-center gap-2">
+                         <Users className="h-4 w-4 text-muted-foreground" />
+                         <span className="text-sm text-muted-foreground">Nenhum atendimento próximo</span>
+                       </div>
+                     )}
+                   </div>
+                 </div>
 
-                <div className="flex gap-2 pt-2">
-                  <Button variant="outline" size="sm" className="flex-1">
-                    <Calendar className="h-3 w-3 mr-1" />
-                    Ver Agenda
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    Editar
-                  </Button>
-                </div>
+                 <div className="flex gap-2 pt-2">
+                   <Button variant="outline" size="sm">
+                     <Eye className="h-3 w-3 mr-1" />
+                     Ver Agenda
+                   </Button>
+                   {profissional.proximosAtendimentos.length > 0 && (
+                     <Button variant="outline" size="sm">
+                       <Edit2 className="h-3 w-3 mr-1" />
+                       Editar
+                     </Button>
+                   )}
+                 </div>
               </div>
             </CardContent>
           </Card>

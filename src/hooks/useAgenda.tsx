@@ -94,29 +94,40 @@ export const useAgenda = (currentMonth: Date, selectedDate: Date | null) => {
     queryFn: async () => {
       const result = await supabase
         .from('agendamentos')
-        .select('data_hora_inicio, cliente_id')
+        .select('data_hora_inicio')
         .gte('data_hora_inicio::date', monthStart)
         .lte('data_hora_inicio::date', monthEnd);
       
       if (result.error) throw result.error;
       
-      // Agrupar por data no cliente
-      const counts: Record<string, Set<string>> = {};
+      // Agrupar por data
+      const counts: Record<string, number> = {};
       (result.data || []).forEach((item: any) => {
         const dia = item.data_hora_inicio.split('T')[0];
-        if (!counts[dia]) counts[dia] = new Set();
-        counts[dia].add(item.cliente_id);
+        counts[dia] = (counts[dia] || 0) + 1;
       });
       
-      return Object.entries(counts).map(([dia, clienteIds]) => ({
+      return Object.entries(counts).map(([dia, qtd]) => ({
         dia,
-        qtd: clienteIds.size,
+        qtd,
       }));
     },
   });
 
-  // Agendamentos do dia selecionado - removida para evitar erro de tipos
-  const dayAppointments: any[] = [];
+  // Agendamentos do dia selecionado com detalhes
+  const { data: dayAppointments = [] } = useQuery({
+    queryKey: ['agenda-appointments', selectedDateStr],
+    queryFn: async () => {
+      if (!selectedDateStr) return [];
+      
+      const result = await supabase
+        .rpc('get_agendamentos_detalhe', { target_date: selectedDateStr });
+      
+      if (result.error) throw result.error;
+      return result.data || [];
+    },
+    enabled: !!selectedDateStr,
+  });
 
   // Função para verificar se uma data é habilitada
   const isDateEnabled = (date: Date): boolean => {
@@ -191,10 +202,18 @@ export const useAgenda = (currentMonth: Date, selectedDate: Date | null) => {
         const mins = minutes % 60;
         const timeString = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
         
+        // Verificar se há agendamento para este horário
+        const slotDateTime = `${selectedDateStr}T${timeString}:00`;
+        const appointment = dayAppointments.find((apt: any) => {
+          const aptTime = new Date(apt.data_hora_inicio).toISOString().slice(0, 16);
+          return aptTime === slotDateTime.slice(0, 16);
+        });
+
         slots.push({
           time: timeString,
-          available: true,
-          occupied: false,
+          available: !appointment,
+          occupied: !!appointment,
+          agendamento: appointment,
         });
       }
     });
@@ -218,6 +237,7 @@ export const useAgenda = (currentMonth: Date, selectedDate: Date | null) => {
       
       // Invalidar queries relevantes
       await queryClient.invalidateQueries({ queryKey: ['agenda-counts'] });
+      await queryClient.invalidateQueries({ queryKey: ['agenda-appointments'] });
       
       toast({
         title: "Sucesso",
@@ -243,6 +263,7 @@ export const useAgenda = (currentMonth: Date, selectedDate: Date | null) => {
         { event: '*', schema: 'public', table: 'agendamentos' },
         () => {
           queryClient.invalidateQueries({ queryKey: ['agenda-counts'] });
+          queryClient.invalidateQueries({ queryKey: ['agenda-appointments'] });
         }
       )
       .on('postgres_changes',
@@ -265,6 +286,38 @@ export const useAgenda = (currentMonth: Date, selectedDate: Date | null) => {
     };
   }, [queryClient]);
 
+  // Função para atualizar agendamento
+  const updateAgendamento = async (id: string, agendamentoData: any) => {
+    try {
+      const result = await supabase
+        .from('agendamentos')
+        .update(agendamentoData)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (result.error) throw result.error;
+      
+      // Invalidar queries relevantes
+      await queryClient.invalidateQueries({ queryKey: ['agenda-counts'] });
+      await queryClient.invalidateQueries({ queryKey: ['agenda-appointments'] });
+      
+      toast({
+        title: "Sucesso",
+        description: "Agendamento atualizado com sucesso",
+      });
+      
+      return result.data;
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao atualizar agendamento",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
   return {
     config,
     isLoading: configLoading,
@@ -273,5 +326,6 @@ export const useAgenda = (currentMonth: Date, selectedDate: Date | null) => {
     daySlots,
     dayAppointments,
     createAgendamento,
+    updateAgendamento,
   };
 };

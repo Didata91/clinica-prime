@@ -32,6 +32,7 @@ export default function Agenda() {
     daySlots,
     dayAppointments,
     createAgendamento,
+    updateAgendamento,
   } = useAgenda(currentMonth, selectedDate);
 
   // Filtrar agendamentos do dia por profissional/serviço
@@ -146,7 +147,9 @@ export default function Agenda() {
           daySlots={daySlots}
           dayAppointments={filteredDayAppointments}
           onCreateAgendamento={createAgendamento}
+          onUpdateAgendamento={updateAgendamento}
           allowOverbooking={config?.allow_overbooking || false}
+          config={config}
         />
       </div>
     </div>
