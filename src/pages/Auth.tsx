@@ -8,10 +8,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { ForgotPasswordModal } from "@/components/ForgotPasswordModal";
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -46,7 +48,7 @@ const Auth = () => {
     setIsLoading(true);
     setError(null);
 
-    const redirectUrl = `${window.location.origin}/`;
+    const redirectUrl = `${import.meta.env.VITE_SITE_URL || window.location.origin}/auth/callback`;
 
     const { error } = await supabase.auth.signUp({
       email,
@@ -108,6 +110,17 @@ const Auth = () => {
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? "Entrando..." : "Entrar"}
         </Button>
+        
+        <div className="text-center mt-4">
+          <Button 
+            type="button" 
+            variant="link" 
+            className="text-sm text-muted-foreground p-0 h-auto"
+            onClick={() => setShowForgotPassword(true)}
+          >
+            Esqueceu sua senha?
+          </Button>
+        </div>
       </form>
     );
   };
@@ -202,6 +215,11 @@ const Auth = () => {
           </p>
         </CardFooter>
       </Card>
+      
+      <ForgotPasswordModal 
+        open={showForgotPassword} 
+        onOpenChange={setShowForgotPassword} 
+      />
     </div>
   );
 };
