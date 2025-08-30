@@ -489,6 +489,42 @@ export type Database = {
         }
         Relationships: []
       }
+      sensitive_data_access_log: {
+        Row: {
+          access_type: string
+          accessed_at: string
+          id: string
+          ip_address: unknown | null
+          record_id: string
+          table_name: string
+          user_agent: string | null
+          user_id: string
+          user_role: string | null
+        }
+        Insert: {
+          access_type: string
+          accessed_at?: string
+          id?: string
+          ip_address?: unknown | null
+          record_id: string
+          table_name: string
+          user_agent?: string | null
+          user_id: string
+          user_role?: string | null
+        }
+        Update: {
+          access_type?: string
+          accessed_at?: string
+          id?: string
+          ip_address?: unknown | null
+          record_id?: string
+          table_name?: string
+          user_agent?: string | null
+          user_id?: string
+          user_role?: string | null
+        }
+        Relationships: []
+      }
       servicos: {
         Row: {
           ativo: boolean
@@ -855,9 +891,80 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_clientes_basic: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          alergias: string
+          bairro: string
+          cep: string
+          cidade: string
+          complemento: string
+          consentimento_lgpd: boolean
+          cpf_cnpj: string
+          created_at: string
+          data_nascimento: string
+          email: string
+          id: string
+          instagram: string
+          logradouro: string
+          medicamentos_uso: string
+          nome_completo: string
+          numero: string
+          observacoes: string
+          sexo: Database["public"]["Enums"]["sexo_enum"]
+          telefone: string
+          termo_consentimento_assinado_em: string
+          uf: string
+          updated_at: string
+        }[]
+      }
+      get_pagamentos_status: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          agendamento_id: string
+          created_at: string
+          data_pagamento: string
+          forma: Database["public"]["Enums"]["forma_pagamento_enum"]
+          id: string
+          status: Database["public"]["Enums"]["status_pagamento_enum"]
+          transacao_externa_id: string
+          valor: number
+        }[]
+      }
+      get_prontuarios_summary: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          agendamento_id: string
+          anamnese: Json
+          assinatura_digital_paciente: string
+          assinatura_profissional: string
+          created_at: string
+          data_finalizacao: string
+          fotos_antes: string[]
+          fotos_depois: string[]
+          id: string
+          lote_validade: string
+          observacoes: string
+          produtos_utilizados: string
+          quantidade_unidades: number
+          updated_at: string
+        }[]
+      }
       get_user_role: {
         Args: { user_uuid: string }
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      get_usuarios_safe: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          ativo: boolean
+          created_at: string
+          email: string
+          id: string
+          nome: string
+          perfil: Database["public"]["Enums"]["perfil_usuario_enum"]
+          updated_at: string
+        }[]
       }
       has_role: {
         Args: {
@@ -868,6 +975,10 @@ export type Database = {
       }
       log_sensitive_access: {
         Args: { access_type: string; entity_id: string; entity_type: string }
+        Returns: undefined
+      }
+      log_sensitive_data_access: {
+        Args: { access_type?: string; record_id: string; table_name: string }
         Returns: undefined
       }
       norm_instagram: {
