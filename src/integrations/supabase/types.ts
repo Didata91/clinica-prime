@@ -353,6 +353,13 @@ export type Database = {
             referencedRelation: "agendamentos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pagamentos_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "v_agendamentos_detalhe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profissionais: {
@@ -458,6 +465,13 @@ export type Database = {
             columns: ["agendamento_id"]
             isOneToOne: false
             referencedRelation: "agendamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prontuarios_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "v_agendamentos_detalhe"
             referencedColumns: ["id"]
           },
         ]
@@ -734,6 +748,13 @@ export type Database = {
             referencedRelation: "agendamentos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pagamentos_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "v_agendamentos_detalhe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       prontuarios_summary: {
@@ -793,6 +814,13 @@ export type Database = {
             referencedRelation: "agendamentos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "prontuarios_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "v_agendamentos_detalhe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       usuarios_safe: {
@@ -824,6 +852,62 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      v_agendamentos_detalhe: {
+        Row: {
+          cliente_id: string | null
+          cliente_nome: string | null
+          created_at: string | null
+          data_hora_fim: string | null
+          data_hora_inicio: string | null
+          duracao_minutos: number | null
+          id: string | null
+          observacoes: string | null
+          profissional_id: string | null
+          profissional_nome: string | null
+          sala_id: string | null
+          servico_id: string | null
+          servico_nome: string | null
+          status: Database["public"]["Enums"]["status_agendamento_enum"] | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agendamentos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agendamentos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes_basic"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agendamentos_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "profissionais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agendamentos_sala_id_fkey"
+            columns: ["sala_id"]
+            isOneToOne: false
+            referencedRelation: "salas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agendamentos_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "servicos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
