@@ -18,8 +18,16 @@ const ResetPassword = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
+        setCanReset(true);
+      }
+    });
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
         setCanReset(true);
       }
     });
@@ -57,7 +65,7 @@ const ResetPassword = () => {
     } else {
       toast({
         title: "Senha redefinida com sucesso!",
-        description: "Sua senha foi alterada. Faça login com a nova senha.",
+        description: "Faça login com sua nova senha.",
       });
       navigate("/auth");
     }
@@ -78,7 +86,7 @@ const ResetPassword = () => {
           <CardContent className="space-y-4">
             <Alert>
               <AlertDescription>
-                Para redefinir sua senha, abra o link recebido no seu email novamente.
+                Abra o link enviado por e-mail para redefinir sua senha.
               </AlertDescription>
             </Alert>
             <Button 

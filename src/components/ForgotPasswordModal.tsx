@@ -31,7 +31,7 @@ export const ForgotPasswordModal = ({ open, onOpenChange }: ForgotPasswordModalP
     setIsLoading(true);
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${import.meta.env.VITE_SITE_URL || window.location.origin}/reset-password`
+      redirectTo: 'https://clinica-prime.lovable.app/reset-password'
     });
 
     if (error) {

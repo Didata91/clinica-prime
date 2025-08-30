@@ -1,35 +1,28 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 
 const AuthCallback = () => {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        navigate("/reset-password");
-      } else if (session?.user) {
-        navigate("/dashboard");
-      } else if (!loading && !session) {
-        navigate("/auth");
+    // Handle OAuth code exchange and redirect
+    const handleAuthCallback = async () => {
+      try {
+        const { error } = await supabase.auth.exchangeCodeForSession(window.location.search);
+        if (error) {
+          console.error("Auth callback error:", error);
+        }
+      } catch (err) {
+        console.error("Unexpected auth callback error:", err);
+      } finally {
+        // Always redirect to home page after processing
+        window.location.replace('/');
       }
-    });
+    };
 
-    return () => subscription.unsubscribe();
-  }, [navigate, loading]);
-
-  useEffect(() => {
-    if (!loading) {
-      if (user) {
-        navigate("/dashboard");
-      } else {
-        navigate("/auth");
-      }
-    }
-  }, [user, loading, navigate]);
+    handleAuthCallback();
+  }, [navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">

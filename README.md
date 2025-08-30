@@ -64,6 +64,28 @@ This project is built with:
 
 Simply open [Lovable](https://lovable.dev/projects/9d16a86d-bd62-4f1d-a818-a5eb432bf256) and click on Share -> Publish.
 
+## Password Reset Flow / Recuperação de Senha
+
+### Como testar o reset de senha:
+
+1. **Solicitar reset**: Na tela de login (/auth), clicar em "Esqueceu sua senha?"
+2. **Inserir email**: Digite o email cadastrado e clique em "Enviar link"
+3. **Verificar email**: Abra o email e clique no link recebido
+4. **Redefinir senha**: O link abrirá em `https://clinica-prime.lovable.app/reset-password`
+5. **Nova senha**: Digite a nova senha (mínimo 8 caracteres) e confirme
+6. **Login**: Após redefinir, faça login com a nova senha
+
+### URLs configuradas:
+- **Base URL**: `https://clinica-prime.lovable.app`
+- **Reset URL**: `https://clinica-prime.lovable.app/reset-password`
+- **Callback URL**: `https://clinica-prime.lovable.app/auth/callback`
+
+### Segurança:
+- Links são válidos apenas uma vez
+- HTTPS obrigatório em produção
+- Mensagens neutras para não expor informações
+- Não expõe tokens ou dados sensíveis no frontend
+
 ## Can I connect a custom domain to my Lovable project?
 
 Yes, you can!

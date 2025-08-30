@@ -48,7 +48,7 @@ const Auth = () => {
     setIsLoading(true);
     setError(null);
 
-    const redirectUrl = `${import.meta.env.VITE_SITE_URL || window.location.origin}/auth/callback`;
+    const redirectUrl = 'https://clinica-prime.lovable.app/auth/callback';
 
     const { error } = await supabase.auth.signUp({
       email,
