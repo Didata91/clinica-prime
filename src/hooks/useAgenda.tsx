@@ -227,28 +227,69 @@ export const useAgenda = (currentMonth: Date, selectedDate: Date | null) => {
   })();
 
   // Função para criar agendamento
-  const createAgendamento = async (agendamentoData: any) => {
+  const createAgendamento = async (agendamentoData: any): Promise<boolean> => {
     try {
-      const result = await supabase
+      // Extract services data for pivot table
+      const { selectedServices, ...mainAgendamentoData } = agendamentoData;
+
+      // 1) Create the main appointment
+      const { data: agendamento, error: agendamentoError } = await supabase
         .from('agendamentos')
-        .insert([agendamentoData]);
-      
-      if (result.error) throw result.error;
-      
+        .insert([mainAgendamentoData])
+        .select()
+        .single();
+
+      if (agendamentoError) {
+        console.error('Erro ao criar agendamento:', agendamentoError);
+        toast({
+          title: "Erro",
+          description: "Não foi possível criar o agendamento.",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      // 2) Create entries in pivot table for services
+      if (selectedServices && selectedServices.length > 0) {
+        const servicosData = selectedServices.map((servicoId: string, index: number) => ({
+          agendamento_id: agendamento.id,
+          servico_id: servicoId,
+          ordem: index + 1,
+        }));
+
+        const { error: servicosError } = await supabase
+          .from('agendamento_servicos')
+          .insert(servicosData);
+
+        if (servicosError) {
+          console.error('Erro ao vincular serviços:', servicosError);
+          // Rollback - delete the created appointment
+          await supabase.from('agendamentos').delete().eq('id', agendamento.id);
+          
+          toast({
+            title: "Erro",
+            description: "Não foi possível vincular os serviços ao agendamento.",
+            variant: "destructive",
+          });
+          return false;
+        }
+      }
+
       // Invalidar queries relevantes
       await queryClient.invalidateQueries({ queryKey: ['agenda-counts'] });
       await queryClient.invalidateQueries({ queryKey: ['agenda-appointments'] });
       
       toast({
         title: "Sucesso",
-        description: "Agendamento criado com sucesso",
+        description: "Agendamento criado com sucesso!",
       });
       
       return true;
     } catch (error: any) {
+      console.error('Erro ao criar agendamento:', error);
       toast({
         title: "Erro",
-        description: error.message || "Erro ao criar agendamento",
+        description: error.message || "Não foi possível criar o agendamento.",
         variant: "destructive",
       });
       return false;

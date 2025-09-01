@@ -8,6 +8,7 @@ import { useServicos } from "@/hooks/useServicos";
 import { useAppConfig } from "@/hooks/useAppConfig";
 import { CalendarioMensal } from "@/components/agenda/CalendarioMensal";
 import { PainelSlots } from "@/components/agenda/PainelSlots";
+import { ModalAgendamento } from "@/components/agenda/ModalAgendamento";
 import {
   Select,
   SelectContent,
@@ -21,6 +22,8 @@ export default function Agenda() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [selectedProfissional, setSelectedProfissional] = useState<string>("todos");
   const [selectedServico, setSelectedServico] = useState<string>("todos");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedSlotDateTime, setSelectedSlotDateTime] = useState<{ date: Date; time: string } | null>(null);
   
   const { profissionais } = useProfissionais();
   const { servicos } = useServicos();
@@ -31,20 +34,13 @@ export default function Agenda() {
     isLoading,
     isDateEnabled,
     getDateCount,
-    daySlots,
-    dayAppointments,
     createAgendamento,
-    updateAgendamento,
   } = useAgenda(currentMonth, selectedDate);
 
-  // Filtrar agendamentos do dia por profissional/serviço
-  const filteredDayAppointments = dayAppointments.filter(agendamento => {
-    const matchProfissional = selectedProfissional === "todos" || 
-      agendamento.profissional_id === selectedProfissional;
-    const matchServico = selectedServico === "todos" || 
-      agendamento.servico_id === selectedServico;
-    return matchProfissional && matchServico;
-  });
+  const handleNovoAgendamento = (slotDateTime?: { date: Date; time: string }) => {
+    setSelectedSlotDateTime(slotDateTime || null);
+    setIsModalOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -146,14 +142,21 @@ export default function Agenda() {
         
         <PainelSlots
           selectedDate={selectedDate}
-          daySlots={daySlots}
-          dayAppointments={filteredDayAppointments}
-          onCreateAgendamento={createAgendamento}
-          onUpdateAgendamento={updateAgendamento}
-          allowOverbooking={config?.allow_overbooking || false}
-          config={{ ...config, scheduleWindows }}
+          onNovoAgendamento={handleNovoAgendamento}
+          scheduleWindows={scheduleWindows}
         />
       </div>
+
+      <ModalAgendamento
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedSlotDateTime(null);
+        }}
+        onSubmit={createAgendamento}
+        scheduleWindows={scheduleWindows}
+        selectedDateTime={selectedSlotDateTime}
+      />
     </div>
   );
 }

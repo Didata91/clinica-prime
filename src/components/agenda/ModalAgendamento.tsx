@@ -29,6 +29,7 @@ interface ModalAgendamentoProps {
   onClose: () => void;
   onSubmit: (data: any) => Promise<boolean>;
   scheduleWindows: ScheduleWindow[];
+  selectedDateTime?: { date: Date; time: string } | null;
 }
 
 export const ModalAgendamento: React.FC<ModalAgendamentoProps> = ({
@@ -36,11 +37,13 @@ export const ModalAgendamento: React.FC<ModalAgendamentoProps> = ({
   onClose,
   onSubmit,
   scheduleWindows,
+  selectedDateTime,
 }) => {
   const [loading, setLoading] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(selectedDateTime?.date || null);
+  const [selectedTime, setSelectedTime] = useState<string | null>(selectedDateTime?.time || null);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [isEditingDateTime, setIsEditingDateTime] = useState(false);
   const [formData, setFormData] = useState({
     cliente_id: '',
     profissional_id: '',
@@ -61,11 +64,15 @@ export const ModalAgendamento: React.FC<ModalAgendamentoProps> = ({
         sala_id: '',
         observacoes: '',
       });
-      setSelectedDate(null);
-      setSelectedTime(null);
+      setSelectedDate(selectedDateTime?.date || null);
+      setSelectedTime(selectedDateTime?.time || null);
       setSelectedServices([]);
+      setIsEditingDateTime(false);
+    } else if (selectedDateTime) {
+      setSelectedDate(selectedDateTime.date);
+      setSelectedTime(selectedDateTime.time);
     }
-  }, [isOpen]);
+  }, [isOpen, selectedDateTime]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,7 +115,8 @@ export const ModalAgendamento: React.FC<ModalAgendamentoProps> = ({
         observacoes: formData.observacoes || null,
         data_hora_inicio: dataHoraInicio.toISOString(),
         data_hora_fim: dataHoraFim.toISOString(),
-        servicos: selectedServicesData,
+        selectedServices: selectedServices, // Send service IDs for pivot table
+        servico_id: selectedServices[0] || null, // Compatibility field
         status: 'solicitado',
         origem: 'recepcao',
         politica_cancelamento_aceita: false,
@@ -191,14 +199,37 @@ export const ModalAgendamento: React.FC<ModalAgendamentoProps> = ({
             {/* Coluna Direita */}
             <div className="space-y-6">
               {/* Data e Hora */}
-              <DateTimePicker
-                selectedDate={selectedDate}
-                selectedTime={selectedTime}
-                onDateChange={setSelectedDate}
-                onTimeChange={setSelectedTime}
-                scheduleWindows={scheduleWindows}
-                profissionalId={formData.profissional_id}
-              />
+              {!isEditingDateTime && selectedDateTime ? (
+                <div className="space-y-2">
+                  <Label>Agendamento marcado para:</Label>
+                  <div className="p-3 bg-muted rounded-md flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">
+                        {selectedDate && selectedTime && 
+                          `${selectedDate.toLocaleDateString('pt-BR')} às ${selectedTime}`
+                        }
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsEditingDateTime(true)}
+                    >
+                      Alterar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <DateTimePicker
+                  selectedDate={selectedDate}
+                  selectedTime={selectedTime}
+                  onDateChange={setSelectedDate}
+                  onTimeChange={setSelectedTime}
+                  scheduleWindows={scheduleWindows}
+                  profissionalId={formData.profissional_id}
+                />
+              )}
             </div>
           </div>
 

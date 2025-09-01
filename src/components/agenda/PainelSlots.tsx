@@ -5,19 +5,13 @@ import { Badge } from '@/components/ui/badge';
 import { AlertCircle, Clock, Plus, Users, Edit, User, Stethoscope } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { TimeSlot } from '@/hooks/useAgenda';
-import { ModalAgendamento } from './ModalAgendamento';
+import { useAgenda } from '@/hooks/useAgenda';
 import { ModalEditarAgendamento } from './ModalEditarAgendamento';
-import { useAppConfig } from '@/hooks/useAppConfig';
 
 interface PainelSlotsProps {
   selectedDate: Date | null;
-  daySlots: TimeSlot[];
-  dayAppointments: any[];
-  onCreateAgendamento: (data: any) => Promise<boolean>;
-  onUpdateAgendamento: (id: string, data: any) => Promise<any>;
-  allowOverbooking: boolean;
-  config?: any;
+  onNovoAgendamento: (slotDateTime?: { date: Date; time: string }) => void;
+  scheduleWindows: any[];
 }
 
 const getStatusColor = (status: string) => {
@@ -33,20 +27,14 @@ const getStatusColor = (status: string) => {
 
 export const PainelSlots: React.FC<PainelSlotsProps> = ({
   selectedDate,
-  daySlots,
-  dayAppointments,
-  onCreateAgendamento,
-  onUpdateAgendamento,
-  allowOverbooking,
-  config,
+  onNovoAgendamento,
+  scheduleWindows,
 }) => {
-  const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { daySlots, dayAppointments } = useAgenda(new Date(), selectedDate);
   const [selectedAgendamento, setSelectedAgendamento] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const { scheduleWindows } = useAppConfig();
 
-  const handleSlotClick = (slot: TimeSlot) => {
+  const handleSlotClick = (slot: any) => {
     if (slot.occupied) {
       // Abrir modal de edição para agendamento existente
       setSelectedAgendamento(slot.agendamento);
@@ -56,24 +44,13 @@ export const PainelSlots: React.FC<PainelSlotsProps> = ({
     
     if (!slot.available) return;
     
-    // Abrir modal para novo agendamento
-    setSelectedSlot(slot);
-    setIsModalOpen(true);
+    // Chamar callback para novo agendamento com data/hora do slot
+    onNovoAgendamento({ 
+      date: selectedDate!, 
+      time: slot.time 
+    });
   };
 
-  const handleCreateAgendamento = async (agendamentoData: any) => {
-    try {
-      const success = await onCreateAgendamento(agendamentoData);
-      if (success) {
-        setIsModalOpen(false);
-        setSelectedSlot(null);
-      }
-      return success;
-    } catch (error) {
-      console.error('Erro ao criar agendamento:', error);
-      return false;
-    }
-  };
 
   if (!selectedDate) {
     return (
@@ -181,21 +158,21 @@ export const PainelSlots: React.FC<PainelSlotsProps> = ({
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                         <Stethoscope className="h-3 w-3" />
-                        <div className="flex flex-wrap gap-1">
-                          {/* Exibir múltiplos serviços se disponível */}
-                          {slot.agendamento.servicos && Array.isArray(slot.agendamento.servicos) ? (
-                            slot.agendamento.servicos.map((servico: any, index: number) => (
-                              <span key={index} className="inline-flex">
-                                {servico.nome || servico}
-                                {index < slot.agendamento.servicos.length - 1 && ', '}
-                              </span>
-                            ))
-                          ) : slot.agendamento.servico_nome ? (
-                            <span>{slot.agendamento.servico_nome}</span>
-                          ) : (
-                            <span>Serviço não especificado</span>
-                          )}
-                        </div>
+                         <div className="flex flex-wrap gap-1">
+                           {/* Exibir múltiplos serviços se disponível no novo campo */}
+                           {slot.agendamento.servicos_nomes && Array.isArray(slot.agendamento.servicos_nomes) && slot.agendamento.servicos_nomes.length > 0 ? (
+                             slot.agendamento.servicos_nomes.map((servicoNome: string, index: number) => (
+                               <span key={index} className="inline-flex">
+                                 {servicoNome}
+                                 {index < slot.agendamento.servicos_nomes.length - 1 && ', '}
+                               </span>
+                             ))
+                           ) : slot.agendamento.servico_nome ? (
+                             <span>{slot.agendamento.servico_nome}</span>
+                           ) : (
+                             <span>Serviço não especificado</span>
+                           )}
+                         </div>
                         <span>•</span>
                         <span>{slot.agendamento.profissional_nome}</span>
                       </div>
@@ -205,61 +182,45 @@ export const PainelSlots: React.FC<PainelSlotsProps> = ({
                         </p>
                       )}
                     </div>
-                  ) : (
-                    <div className="flex-1 flex items-center justify-between">
-                      <span className="text-muted-foreground text-sm">
-                        Horário disponível
-                      </span>
-                      <Plus className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          
-          {/* Legenda */}
-          <div className="mt-4 pt-4 border-t">
-            <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded border bg-background"></div>
-                <span>Disponível</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded bg-muted/20"></div>
-                <span>Ocupado</span>
-              </div>
-              {!allowOverbooking && (
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded bg-muted opacity-60"></div>
-                  <span>Indisponível</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+                   ) : (
+                     <div className="flex-1 flex items-center justify-between">
+                       <span className="text-muted-foreground text-sm">
+                         Horário disponível
+                       </span>
+                       <Plus className="h-4 w-4 text-muted-foreground" />
+                     </div>
+                   )}
+                 </div>
+               );
+             })}
+           </div>
+           
+           {/* Legenda */}
+           <div className="mt-4 pt-4 border-t">
+             <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+               <div className="flex items-center gap-2">
+                 <div className="w-3 h-3 rounded border bg-background"></div>
+                 <span>Disponível</span>
+               </div>
+               <div className="flex items-center gap-2">
+                 <div className="w-3 h-3 rounded bg-muted/20"></div>
+                 <span>Ocupado</span>
+               </div>
+             </div>
+           </div>
+         </CardContent>
+       </Card>
 
-      <ModalAgendamento
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setSelectedSlot(null);
-        }}
-        onSubmit={handleCreateAgendamento}
-        scheduleWindows={scheduleWindows}
-      />
-
-      <ModalEditarAgendamento
-        isOpen={isEditModalOpen}
-        onClose={() => {
-          setIsEditModalOpen(false);
-          setSelectedAgendamento(null);
-        }}
-        agendamento={selectedAgendamento}
-        onUpdate={onUpdateAgendamento}
-        config={config}
-      />
-    </>
-  );
-};
+        <ModalEditarAgendamento
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setSelectedAgendamento(null);
+          }}
+          agendamento={selectedAgendamento}
+          onUpdate={async () => {}}
+          config={{}}
+        />
+     </>
+   );
+ };

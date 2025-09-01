@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      agendamento_servicos: {
+        Row: {
+          agendamento_id: string
+          created_at: string
+          id: number
+          minutos: number | null
+          ordem: number
+          servico_id: string
+        }
+        Insert: {
+          agendamento_id: string
+          created_at?: string
+          id?: number
+          minutos?: number | null
+          ordem?: number
+          servico_id: string
+        }
+        Update: {
+          agendamento_id?: string
+          created_at?: string
+          id?: number
+          minutos?: number | null
+          ordem?: number
+          servico_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agendamento_servicos_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "agendamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agendamento_servicos_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "servicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agendamentos: {
         Row: {
           cliente_id: string
@@ -28,7 +70,7 @@ export type Database = {
           politica_cancelamento_aceita: boolean
           profissional_id: string
           sala_id: string | null
-          servico_id: string
+          servico_id: string | null
           servicos: Json | null
           status: Database["public"]["Enums"]["status_agendamento_enum"]
           updated_at: string
@@ -46,7 +88,7 @@ export type Database = {
           politica_cancelamento_aceita?: boolean
           profissional_id: string
           sala_id?: string | null
-          servico_id: string
+          servico_id?: string | null
           servicos?: Json | null
           status?: Database["public"]["Enums"]["status_agendamento_enum"]
           updated_at?: string
@@ -64,7 +106,7 @@ export type Database = {
           politica_cancelamento_aceita?: boolean
           profissional_id?: string
           sala_id?: string | null
-          servico_id?: string
+          servico_id?: string | null
           servicos?: Json | null
           status?: Database["public"]["Enums"]["status_agendamento_enum"]
           updated_at?: string
