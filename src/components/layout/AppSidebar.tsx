@@ -22,7 +22,7 @@ const menuItems = [
   { title: "Clientes", url: "/clientes", icon: Users },
   { title: "Profissionais", url: "/profissionais", icon: UserCog },
   { title: "Serviços", url: "/servicos", icon: Package },
-  { title: "Atendimentos", url: "/atendimentos", icon: CalendarClock },
+//{ title: "Atendimentos", url: "/atendimentos", icon: CalendarClock },
   { title: "Prontuários", url: "/prontuarios", icon: FileText },
   { title: "Financeiro", url: "/financeiro", icon: DollarSign },
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
