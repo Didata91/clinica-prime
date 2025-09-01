@@ -29,6 +29,7 @@ export type Database = {
           profissional_id: string
           sala_id: string | null
           servico_id: string
+          servicos: Json | null
           status: Database["public"]["Enums"]["status_agendamento_enum"]
           updated_at: string
         }
@@ -46,6 +47,7 @@ export type Database = {
           profissional_id: string
           sala_id?: string | null
           servico_id: string
+          servicos?: Json | null
           status?: Database["public"]["Enums"]["status_agendamento_enum"]
           updated_at?: string
         }
@@ -63,6 +65,7 @@ export type Database = {
           profissional_id?: string
           sala_id?: string | null
           servico_id?: string
+          servicos?: Json | null
           status?: Database["public"]["Enums"]["status_agendamento_enum"]
           updated_at?: string
         }

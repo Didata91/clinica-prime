@@ -7,7 +7,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -17,31 +16,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { useClientes } from '@/hooks/useClientes';
 import { useProfissionais } from '@/hooks/useProfissionais';
 import { useServicos } from '@/hooks/useServicos';
+import { MultiServiceSelector } from './MultiServiceSelector';
+import { DateTimePicker } from './DateTimePicker';
+import { useAgenda } from '@/hooks/useAgenda';
+import { ScheduleWindow } from '@/hooks/useAppConfig';
 
 interface ModalAgendamentoProps {
   isOpen: boolean;
   onClose: () => void;
-  selectedDate: Date | null;
-  selectedTime: string | null;
   onSubmit: (data: any) => Promise<boolean>;
+  scheduleWindows: ScheduleWindow[];
 }
 
 export const ModalAgendamento: React.FC<ModalAgendamentoProps> = ({
   isOpen,
   onClose,
-  selectedDate,
-  selectedTime,
   onSubmit,
+  scheduleWindows,
 }) => {
   const [loading, setLoading] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     cliente_id: '',
-    servico_id: '',
     profissional_id: '',
     sala_id: '',
     observacoes: '',
@@ -56,148 +57,152 @@ export const ModalAgendamento: React.FC<ModalAgendamentoProps> = ({
     if (!isOpen) {
       setFormData({
         cliente_id: '',
-        servico_id: '',
         profissional_id: '',
         sala_id: '',
         observacoes: '',
       });
+      setSelectedDate(null);
+      setSelectedTime(null);
+      setSelectedServices([]);
     }
   }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.cliente_id || !formData.servico_id || !formData.profissional_id) {
+    if (!formData.cliente_id || !formData.profissional_id || 
+        selectedServices.length === 0 || !selectedDate || !selectedTime) {
       return;
     }
 
     setLoading(true);
     
     try {
-      const servico = servicos.find(s => s.id === formData.servico_id);
+      // Preparar dados dos serviços selecionados
+      const selectedServicesData = servicos
+        .filter(s => selectedServices.includes(s.id))
+        .map(s => ({
+          id: s.id,
+          nome: s.nome,
+          duracao_minutos: s.duracao_minutos,
+        }));
+
+      // Calcular duração total
+      const duracaoTotal = selectedServicesData.reduce(
+        (total, servico) => total + servico.duracao_minutos, 
+        0
+      );
+
+      // Calcular data_hora_inicio e data_hora_fim
+      const [hours, minutes] = selectedTime.split(':').map(Number);
+      const dataHoraInicio = new Date(selectedDate);
+      dataHoraInicio.setHours(hours, minutes, 0, 0);
       
-      // Calcular data_hora_fim baseado na duração do serviço
-      let dataHoraFim = null;
-      if (servico?.duracao_minutos && selectedDate && selectedTime) {
-        const [hours, minutes] = selectedTime.split(':').map(Number);
-        const dataHora = new Date(selectedDate);
-        dataHora.setHours(hours, minutes, 0, 0);
-        
-        const dataFim = new Date(dataHora);
-        dataFim.setMinutes(dataFim.getMinutes() + servico.duracao_minutos);
-        dataHoraFim = dataFim.toISOString();
-      }
+      const dataHoraFim = new Date(dataHoraInicio);
+      dataHoraFim.setMinutes(dataHoraFim.getMinutes() + duracaoTotal);
 
       const agendamentoData = {
         cliente_id: formData.cliente_id,
-        servico_id: formData.servico_id,
         profissional_id: formData.profissional_id,
         sala_id: formData.sala_id || null,
         observacoes: formData.observacoes || null,
-        data_hora_fim: dataHoraFim,
+        data_hora_inicio: dataHoraInicio.toISOString(),
+        data_hora_fim: dataHoraFim.toISOString(),
+        servicos: selectedServicesData,
         status: 'solicitado',
         origem: 'recepcao',
         politica_cancelamento_aceita: false,
       };
 
-      await onSubmit(agendamentoData);
+      const success = await onSubmit(agendamentoData);
+      if (success) {
+        onClose();
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const formatDateTime = () => {
-    if (!selectedDate || !selectedTime) return '';
-    return `${format(selectedDate, 'dd/MM/yyyy', { locale: ptBR })} às ${selectedTime}`;
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>Novo Agendamento</DialogTitle>
           <DialogDescription>
-            Agendamento para {formatDateTime()}
+            Preencha os dados para criar um novo agendamento
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Cliente */}
-            <div className="space-y-2">
-              <Label htmlFor="cliente">Cliente *</Label>
-              <Select
-                value={formData.cliente_id}
-                onValueChange={(value) => setFormData({ ...formData, cliente_id: value })}
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clientes.map((cliente) => (
-                    <SelectItem key={cliente.id} value={cliente.id}>
-                      {cliente.nome_completo}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Coluna Esquerda */}
+            <div className="space-y-6">
+              {/* Cliente */}
+              <div className="space-y-2">
+                <Label htmlFor="cliente">Cliente *</Label>
+                <Select
+                  value={formData.cliente_id}
+                  onValueChange={(value) => setFormData({ ...formData, cliente_id: value })}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clientes.map((cliente) => (
+                      <SelectItem key={cliente.id} value={cliente.id}>
+                        {cliente.nome_completo}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Profissional */}
+              <div className="space-y-2">
+                <Label htmlFor="profissional">Profissional *</Label>
+                <Select
+                  value={formData.profissional_id}
+                  onValueChange={(value) => setFormData({ ...formData, profissional_id: value })}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um profissional" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {profissionais.map((profissional) => (
+                      <SelectItem key={profissional.id} value={profissional.id}>
+                        {profissional.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Serviços */}
+              <MultiServiceSelector
+                servicos={servicos}
+                selectedServices={selectedServices}
+                onSelectionChange={setSelectedServices}
+              />
             </div>
 
-            {/* Serviço */}
-            <div className="space-y-2">
-              <Label htmlFor="servico">Serviço *</Label>
-              <Select
-                value={formData.servico_id}
-                onValueChange={(value) => setFormData({ ...formData, servico_id: value })}
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um serviço" />
-                </SelectTrigger>
-                <SelectContent>
-                  {servicos.map((servico) => (
-                    <SelectItem key={servico.id} value={servico.id}>
-                      {servico.nome} ({servico.duracao_minutos}min)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Profissional */}
-            <div className="space-y-2">
-              <Label htmlFor="profissional">Profissional *</Label>
-              <Select
-                value={formData.profissional_id}
-                onValueChange={(value) => setFormData({ ...formData, profissional_id: value })}
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um profissional" />
-                </SelectTrigger>
-                <SelectContent>
-                  {profissionais.map((profissional) => (
-                    <SelectItem key={profissional.id} value={profissional.id}>
-                      {profissional.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Data e Hora (readonly) */}
-            <div className="space-y-2">
-              <Label>Data e Hora</Label>
-              <Input
-                value={formatDateTime()}
-                readOnly
-                className="bg-muted"
+            {/* Coluna Direita */}
+            <div className="space-y-6">
+              {/* Data e Hora */}
+              <DateTimePicker
+                selectedDate={selectedDate}
+                selectedTime={selectedTime}
+                onDateChange={setSelectedDate}
+                onTimeChange={setSelectedTime}
+                scheduleWindows={scheduleWindows}
+                profissionalId={formData.profissional_id}
               />
             </div>
           </div>
 
-          {/* Observações */}
+          {/* Observações - Largura completa */}
           <div className="space-y-2">
             <Label htmlFor="observacoes">Observações</Label>
             <Textarea
@@ -213,7 +218,11 @@ export const ModalAgendamento: React.FC<ModalAgendamentoProps> = ({
             <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button 
+              type="submit" 
+              disabled={loading || !formData.cliente_id || !formData.profissional_id || 
+                        selectedServices.length === 0 || !selectedDate || !selectedTime}
+            >
               {loading ? 'Agendando...' : 'Confirmar Agendamento'}
             </Button>
           </div>

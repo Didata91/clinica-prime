@@ -5,6 +5,7 @@ import { Filter, Settings } from "lucide-react";
 import { useAgenda } from "@/hooks/useAgenda";
 import { useProfissionais } from "@/hooks/useProfissionais";
 import { useServicos } from "@/hooks/useServicos";
+import { useAppConfig } from "@/hooks/useAppConfig";
 import { CalendarioMensal } from "@/components/agenda/CalendarioMensal";
 import { PainelSlots } from "@/components/agenda/PainelSlots";
 import {
@@ -23,6 +24,7 @@ export default function Agenda() {
   
   const { profissionais } = useProfissionais();
   const { servicos } = useServicos();
+  const { scheduleWindows } = useAppConfig();
   
   const {
     config,
@@ -149,7 +151,7 @@ export default function Agenda() {
           onCreateAgendamento={createAgendamento}
           onUpdateAgendamento={updateAgendamento}
           allowOverbooking={config?.allow_overbooking || false}
-          config={config}
+          config={{ ...config, scheduleWindows }}
         />
       </div>
     </div>

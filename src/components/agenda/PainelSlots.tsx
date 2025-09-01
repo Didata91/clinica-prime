@@ -8,6 +8,7 @@ import { ptBR } from 'date-fns/locale';
 import { TimeSlot } from '@/hooks/useAgenda';
 import { ModalAgendamento } from './ModalAgendamento';
 import { ModalEditarAgendamento } from './ModalEditarAgendamento';
+import { useAppConfig } from '@/hooks/useAppConfig';
 
 interface PainelSlotsProps {
   selectedDate: Date | null;
@@ -39,10 +40,11 @@ export const PainelSlots: React.FC<PainelSlotsProps> = ({
   allowOverbooking,
   config,
 }) => {
-  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAgendamento, setSelectedAgendamento] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const { scheduleWindows } = useAppConfig();
 
   const handleSlotClick = (slot: TimeSlot) => {
     if (slot.occupied) {
@@ -55,29 +57,22 @@ export const PainelSlots: React.FC<PainelSlotsProps> = ({
     if (!slot.available) return;
     
     // Abrir modal para novo agendamento
-    setSelectedSlot(slot.time);
+    setSelectedSlot(slot);
     setIsModalOpen(true);
   };
 
   const handleCreateAgendamento = async (agendamentoData: any) => {
-    if (!selectedDate || !selectedSlot) return false;
-    
-    // Combinar data selecionada com horário do slot
-    const [hours, minutes] = selectedSlot.split(':').map(Number);
-    const dataHora = new Date(selectedDate);
-    dataHora.setHours(hours, minutes, 0, 0);
-    
-    const success = await onCreateAgendamento({
-      ...agendamentoData,
-      data_hora_inicio: dataHora.toISOString(),
-    });
-    
-    if (success) {
-      setIsModalOpen(false);
-      setSelectedSlot(null);
+    try {
+      const success = await onCreateAgendamento(agendamentoData);
+      if (success) {
+        setIsModalOpen(false);
+        setSelectedSlot(null);
+      }
+      return success;
+    } catch (error) {
+      console.error('Erro ao criar agendamento:', error);
+      return false;
     }
-    
-    return success;
   };
 
   if (!selectedDate) {
@@ -186,7 +181,21 @@ export const PainelSlots: React.FC<PainelSlotsProps> = ({
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                         <Stethoscope className="h-3 w-3" />
-                        <span>{slot.agendamento.servico_nome}</span>
+                        <div className="flex flex-wrap gap-1">
+                          {/* Exibir múltiplos serviços se disponível */}
+                          {slot.agendamento.servicos && Array.isArray(slot.agendamento.servicos) ? (
+                            slot.agendamento.servicos.map((servico: any, index: number) => (
+                              <span key={index} className="inline-flex">
+                                {servico.nome || servico}
+                                {index < slot.agendamento.servicos.length - 1 && ', '}
+                              </span>
+                            ))
+                          ) : slot.agendamento.servico_nome ? (
+                            <span>{slot.agendamento.servico_nome}</span>
+                          ) : (
+                            <span>Serviço não especificado</span>
+                          )}
+                        </div>
                         <span>•</span>
                         <span>{slot.agendamento.profissional_nome}</span>
                       </div>
@@ -237,9 +246,8 @@ export const PainelSlots: React.FC<PainelSlotsProps> = ({
           setIsModalOpen(false);
           setSelectedSlot(null);
         }}
-        selectedDate={selectedDate}
-        selectedTime={selectedSlot}
         onSubmit={handleCreateAgendamento}
+        scheduleWindows={scheduleWindows}
       />
 
       <ModalEditarAgendamento
