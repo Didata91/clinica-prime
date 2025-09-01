@@ -65,7 +65,7 @@ function getPageTitle(pathname: string): string {
     "/clientes": "Clientes", 
     "/profissionais": "Profissionais",
     "/servicos": "Serviços",
-    "/atendimentos": "Atendimentos",
+    //"/atendimentos": "Atendimentos",
     "/prontuarios": "Prontuários",
     "/financeiro": "Financeiro",
     "/relatorios": "Relatórios", 
