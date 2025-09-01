@@ -40,7 +40,7 @@ const App = () => (
             <Route path="/clientes" element={<ProtectedRoute><AppLayout><Clientes /></AppLayout></ProtectedRoute>} />
             <Route path="/profissionais" element={<ProtectedRoute><AppLayout><Profissionais /></AppLayout></ProtectedRoute>} />
             <Route path="/servicos" element={<ProtectedRoute><AppLayout><Servicos /></AppLayout></ProtectedRoute>} />
-            <Route path="/atendimentos" element={<ProtectedRoute><AppLayout><Agenda /></AppLayout></ProtectedRoute>} />
+            /*<Route path="/atendimentos" element={<ProtectedRoute><AppLayout><Agenda /></AppLayout></ProtectedRoute>} />*/
             <Route path="/prontuarios" element={<ProtectedRoute><AppLayout><Prontuarios /></AppLayout></ProtectedRoute>} />
             <Route path="/financeiro" element={<ProtectedRoute><AppLayout><Financeiro /></AppLayout></ProtectedRoute>} />
             <Route path="/relatorios" element={<ProtectedRoute><AppLayout><Relatorios /></AppLayout></ProtectedRoute>} />
