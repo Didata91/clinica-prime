@@ -18,26 +18,35 @@ export type Database = {
         Row: {
           agendamento_id: string
           created_at: string
+          desconto_motivo: string | null
           id: number
           minutos: number | null
           ordem: number
           servico_id: string
+          valor_aplicado: number | null
+          valor_padrao: number | null
         }
         Insert: {
           agendamento_id: string
           created_at?: string
+          desconto_motivo?: string | null
           id?: number
           minutos?: number | null
           ordem?: number
           servico_id: string
+          valor_aplicado?: number | null
+          valor_padrao?: number | null
         }
         Update: {
           agendamento_id?: string
           created_at?: string
+          desconto_motivo?: string | null
           id?: number
           minutos?: number | null
           ordem?: number
           servico_id?: string
+          valor_aplicado?: number | null
+          valor_padrao?: number | null
         }
         Relationships: [
           {
@@ -48,6 +57,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "agendamento_servicos_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "v_agendamentos_detalhe"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "agendamento_servicos_servico_id_fkey"
             columns: ["servico_id"]
             isOneToOne: false
@@ -55,6 +71,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      agendamento_status: {
+        Row: {
+          id: string
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          id: string
+          nome: string
+          ordem: number
+        }
+        Update: {
+          id?: string
+          nome?: string
+          ordem?: number
+        }
+        Relationships: []
       }
       agendamentos: {
         Row: {
@@ -73,6 +107,7 @@ export type Database = {
           servico_id: string | null
           servicos: Json | null
           status: Database["public"]["Enums"]["status_agendamento_enum"]
+          status_id: string | null
           updated_at: string
         }
         Insert: {
@@ -91,6 +126,7 @@ export type Database = {
           servico_id?: string | null
           servicos?: Json | null
           status?: Database["public"]["Enums"]["status_agendamento_enum"]
+          status_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -109,6 +145,7 @@ export type Database = {
           servico_id?: string | null
           servicos?: Json | null
           status?: Database["public"]["Enums"]["status_agendamento_enum"]
+          status_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -138,6 +175,13 @@ export type Database = {
             columns: ["servico_id"]
             isOneToOne: false
             referencedRelation: "servicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agendamentos_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "agendamento_status"
             referencedColumns: ["id"]
           },
         ]
@@ -384,6 +428,13 @@ export type Database = {
             referencedRelation: "agendamentos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pagamentos_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "v_agendamentos_detalhe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profissionais: {
@@ -491,6 +542,13 @@ export type Database = {
             referencedRelation: "agendamentos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "prontuarios_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "v_agendamentos_detalhe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       salas: {
@@ -569,6 +627,7 @@ export type Database = {
           id: string
           nome: string
           preco_base: number
+          preco_padrao: number | null
           updated_at: string
         }
         Insert: {
@@ -583,6 +642,7 @@ export type Database = {
           id?: string
           nome: string
           preco_base?: number
+          preco_padrao?: number | null
           updated_at?: string
         }
         Update: {
@@ -597,6 +657,7 @@ export type Database = {
           id?: string
           nome?: string
           preco_base?: number
+          preco_padrao?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -687,7 +748,41 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_agendamentos_detalhe: {
+        Row: {
+          cliente_id: string | null
+          cliente_nome: string | null
+          created_at: string | null
+          data_hora_fim: string | null
+          data_hora_inicio: string | null
+          duracao_total_min: number | null
+          id: string | null
+          observacoes: string | null
+          profissional_id: string | null
+          profissional_nome: string | null
+          servicos_nomes: string[] | null
+          status_id: string | null
+          status_nome: string | null
+          updated_at: string | null
+          valor_total: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agendamentos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agendamentos_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "profissionais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       can_access_client: {
