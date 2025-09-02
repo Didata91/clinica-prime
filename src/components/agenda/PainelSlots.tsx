@@ -175,8 +175,13 @@ export const PainelSlots: React.FC<PainelSlotsProps> = ({
                          </div>
                         <span>•</span>
                         <span>{slot.agendamento.profissional_nome}</span>
-                      </div>
-                      {slot.agendamento.observacoes && (
+                       </div>
+                       {slot.agendamento.valor_total && slot.agendamento.valor_total > 0 && (
+                         <div className="text-xs text-primary font-medium mt-1">
+                           Total: R$ {slot.agendamento.valor_total.toFixed(2)}
+                         </div>
+                       )}
+                       {slot.agendamento.observacoes && (
                         <p className="text-xs text-muted-foreground italic">
                           {slot.agendamento.observacoes}
                         </p>

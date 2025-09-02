@@ -249,12 +249,16 @@ export const useAgenda = (currentMonth: Date, selectedDate: Date | null) => {
         return false;
       }
 
-      // 2) Create entries in pivot table for services
+      // 2) Create entries in pivot table for services with pricing
       if (selectedServices && selectedServices.length > 0) {
-        const servicosData = selectedServices.map((servicoId: string, index: number) => ({
+        const servicosData = selectedServices.map((servico: any, index: number) => ({
           agendamento_id: agendamento.id,
-          servico_id: servicoId,
+          servico_id: servico.id,
           ordem: index + 1,
+          minutos: servico.duracao_minutos,
+          valor_padrao: servico.valor_padrao,
+          valor_aplicado: servico.valor_aplicado,
+          desconto_motivo: servico.desconto_motivo || null,
         }));
 
         const { error: servicosError } = await supabase
