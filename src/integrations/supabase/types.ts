@@ -186,6 +186,69 @@ export type Database = {
           },
         ]
       }
+      agendas: {
+        Row: {
+          created_at: string
+          data: string
+          desconto_aplicado: number
+          faturamento_liquido: number | null
+          forma_pagamento:
+            | Database["public"]["Enums"]["forma_pagamento_enum"]
+            | null
+          horario: string
+          id: string
+          mls: number | null
+          motivo_desconto: string | null
+          nome: string
+          procedimento: string
+          sinal: number
+          status: Database["public"]["Enums"]["status_agenda_enum"]
+          updated_at: string
+          valor_cobrado: number | null
+          valor_procedimento_padrao: number
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          desconto_aplicado?: number
+          faturamento_liquido?: number | null
+          forma_pagamento?:
+            | Database["public"]["Enums"]["forma_pagamento_enum"]
+            | null
+          horario: string
+          id?: string
+          mls?: number | null
+          motivo_desconto?: string | null
+          nome: string
+          procedimento: string
+          sinal?: number
+          status?: Database["public"]["Enums"]["status_agenda_enum"]
+          updated_at?: string
+          valor_cobrado?: number | null
+          valor_procedimento_padrao?: number
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          desconto_aplicado?: number
+          faturamento_liquido?: number | null
+          forma_pagamento?:
+            | Database["public"]["Enums"]["forma_pagamento_enum"]
+            | null
+          horario?: string
+          id?: string
+          mls?: number | null
+          motivo_desconto?: string | null
+          nome?: string
+          procedimento?: string
+          sinal?: number
+          status?: Database["public"]["Enums"]["status_agenda_enum"]
+          updated_at?: string
+          valor_cobrado?: number | null
+          valor_procedimento_padrao?: number
+        }
+        Relationships: []
+      }
       app_config: {
         Row: {
           agenda_interval_minutes: number
@@ -662,6 +725,108 @@ export type Database = {
         }
         Relationships: []
       }
+      stg_agendas_raw: {
+        Row: {
+          cliente_cpf: string | null
+          cliente_email: string | null
+          cliente_nome: string | null
+          cliente_telefone: string | null
+          data: string | null
+          data_hora: string | null
+          hora: string | null
+          observacoes: string | null
+          origem_text: string | null
+          profissional_nome: string | null
+          sala_nome: string | null
+          servicos_raw: string | null
+          status_text: string | null
+        }
+        Insert: {
+          cliente_cpf?: string | null
+          cliente_email?: string | null
+          cliente_nome?: string | null
+          cliente_telefone?: string | null
+          data?: string | null
+          data_hora?: string | null
+          hora?: string | null
+          observacoes?: string | null
+          origem_text?: string | null
+          profissional_nome?: string | null
+          sala_nome?: string | null
+          servicos_raw?: string | null
+          status_text?: string | null
+        }
+        Update: {
+          cliente_cpf?: string | null
+          cliente_email?: string | null
+          cliente_nome?: string | null
+          cliente_telefone?: string | null
+          data?: string | null
+          data_hora?: string | null
+          hora?: string | null
+          observacoes?: string | null
+          origem_text?: string | null
+          profissional_nome?: string | null
+          sala_nome?: string | null
+          servicos_raw?: string | null
+          status_text?: string | null
+        }
+        Relationships: []
+      }
+      stg_clientes_form: {
+        Row: {
+          carimbo_de_data_hora: string | null
+          como_conheceu: string | null
+          cpf: string | null
+          data_cadastro: string | null
+          data_nascimento: string | null
+          email: string | null
+          endereco_email: string | null
+          idcliente: string | null
+          instagram: string | null
+          melhor_horario_contato: string | null
+          nome_completo: string | null
+          observacoes: string | null
+          pontuacao: string | null
+          procedimentos_interesse: string | null
+          telefone_celular: string | null
+        }
+        Insert: {
+          carimbo_de_data_hora?: string | null
+          como_conheceu?: string | null
+          cpf?: string | null
+          data_cadastro?: string | null
+          data_nascimento?: string | null
+          email?: string | null
+          endereco_email?: string | null
+          idcliente?: string | null
+          instagram?: string | null
+          melhor_horario_contato?: string | null
+          nome_completo?: string | null
+          observacoes?: string | null
+          pontuacao?: string | null
+          procedimentos_interesse?: string | null
+          telefone_celular?: string | null
+        }
+        Update: {
+          carimbo_de_data_hora?: string | null
+          como_conheceu?: string | null
+          cpf?: string | null
+          data_cadastro?: string | null
+          data_nascimento?: string | null
+          email?: string | null
+          endereco_email?: string | null
+          idcliente?: string | null
+          instagram?: string | null
+          melhor_horario_contato?: string | null
+          nome_completo?: string | null
+          observacoes?: string | null
+          pontuacao?: string | null
+          procedimentos_interesse?: string | null
+          telefone_celular?: string | null
+        }
+        Relationships: []
+      }
       templates: {
         Row: {
           ativo: boolean
@@ -782,6 +947,88 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      v_agendas_base: {
+        Row: {
+          data: string | null
+          descontos: number | null
+          faturamento_bruto: number | null
+          faturamento_liquido: number | null
+          forma_pagamento:
+            | Database["public"]["Enums"]["forma_pagamento_enum"]
+            | null
+          procedimento: string | null
+          qtd: number | null
+          status: Database["public"]["Enums"]["status_agenda_enum"] | null
+        }
+        Insert: {
+          data?: string | null
+          descontos?: number | null
+          faturamento_bruto?: never
+          faturamento_liquido?: number | null
+          forma_pagamento?:
+            | Database["public"]["Enums"]["forma_pagamento_enum"]
+            | null
+          procedimento?: string | null
+          qtd?: never
+          status?: Database["public"]["Enums"]["status_agenda_enum"] | null
+        }
+        Update: {
+          data?: string | null
+          descontos?: number | null
+          faturamento_bruto?: never
+          faturamento_liquido?: number | null
+          forma_pagamento?:
+            | Database["public"]["Enums"]["forma_pagamento_enum"]
+            | null
+          procedimento?: string | null
+          qtd?: never
+          status?: Database["public"]["Enums"]["status_agenda_enum"] | null
+        }
+        Relationships: []
+      }
+      v_agendas_diario: {
+        Row: {
+          data: string | null
+          descontos: number | null
+          faturamento_bruto: number | null
+          faturamento_liquido: number | null
+          procedimentos: number | null
+          ticket_medio: number | null
+        }
+        Relationships: []
+      }
+      v_agendas_pagamento: {
+        Row: {
+          descontos: number | null
+          faturamento_bruto: number | null
+          faturamento_liquido: number | null
+          forma_pagamento:
+            | Database["public"]["Enums"]["forma_pagamento_enum"]
+            | null
+          qtd: number | null
+        }
+        Relationships: []
+      }
+      v_agendas_procedimento: {
+        Row: {
+          descontos: number | null
+          faturamento_bruto: number | null
+          faturamento_liquido: number | null
+          procedimento: string | null
+          qtd: number | null
+        }
+        Relationships: []
+      }
+      v_agendas_status: {
+        Row: {
+          descontos: number | null
+          faturamento_bruto: number | null
+          faturamento_liquido: number | null
+          qtd: number | null
+          status: Database["public"]["Enums"]["status_agenda_enum"] | null
+        }
+        Relationships: []
       }
     }
     Functions: {
@@ -940,6 +1187,12 @@ export type Database = {
         | "financeiro"
         | "gestor"
       sexo_enum: "feminino" | "masculino" | "outro" | "nao_informar"
+      status_agenda_enum:
+        | "agendado"
+        | "concluido"
+        | "nao_compareceu"
+        | "cancelado"
+        | "remarcado"
       status_agendamento_enum:
         | "solicitado"
         | "confirmado"
@@ -1105,6 +1358,13 @@ export const Constants = {
         "gestor",
       ],
       sexo_enum: ["feminino", "masculino", "outro", "nao_informar"],
+      status_agenda_enum: [
+        "agendado",
+        "concluido",
+        "nao_compareceu",
+        "cancelado",
+        "remarcado",
+      ],
       status_agendamento_enum: [
         "solicitado",
         "confirmado",

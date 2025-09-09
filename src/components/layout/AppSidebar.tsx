@@ -1,4 +1,4 @@
-import { Calendar, Users, UserCog, Package, FileText, DollarSign, BarChart3, Settings, Activity, CalendarClock, LogOut } from "lucide-react";
+import { Calendar, Users, UserCog, Package, FileText, DollarSign, BarChart3, Settings, Activity, CalendarClock, LogOut, Upload, TrendingUp } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,12 @@ const menuItems = [
   { title: "Financeiro", url: "/financeiro", icon: DollarSign },
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
+];
+
+const agendasMenuItems = [
+  { title: "Gerenciar Agendas", url: "/agendas-lista", icon: Calendar },
+  { title: "Importar CSV", url: "/importar-agendas", icon: Upload },
+  { title: "Dashboard Financeiro", url: "/dashboard-agendas", icon: TrendingUp },
 ];
 
 export function AppSidebar() {
@@ -65,6 +71,24 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink to={item.url} end className={getNavCls}>
+                      <item.icon className="h-4 w-4" />
+                      {open && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Sistema Agendas</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {agendasMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink to={item.url} end className={getNavCls}>

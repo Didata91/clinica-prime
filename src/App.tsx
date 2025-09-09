@@ -10,7 +10,10 @@ import Clientes from "./pages/Clientes";
 import Profissionais from "./pages/Profissionais";
 import Servicos from "./pages/Servicos";
 import Prontuarios from "./pages/Prontuarios";
-import Financeiro from "./pages/Financeiro";
+import Financeiro from '@/pages/Financeiro';
+import AgendasLista from '@/pages/AgendasLista';
+import ImportarAgendas from '@/pages/ImportarAgendas';
+import DashboardAgendas from '@/pages/DashboardAgendas';
 import Relatorios from "./pages/Relatorios";
 import Configuracoes from "./pages/Configuracoes";
 import NotFound from "./pages/NotFound";
@@ -43,6 +46,9 @@ const App = () => (
             /*<Route path="/atendimentos" element={<ProtectedRoute><AppLayout><Agenda /></AppLayout></ProtectedRoute>} />*/
             <Route path="/prontuarios" element={<ProtectedRoute><AppLayout><Prontuarios /></AppLayout></ProtectedRoute>} />
             <Route path="/financeiro" element={<ProtectedRoute><AppLayout><Financeiro /></AppLayout></ProtectedRoute>} />
+            <Route path="/agendas-lista" element={<ProtectedRoute><AppLayout><AgendasLista /></AppLayout></ProtectedRoute>} />
+            <Route path="/importar-agendas" element={<ProtectedRoute><AppLayout><ImportarAgendas /></AppLayout></ProtectedRoute>} />
+            <Route path="/dashboard-agendas" element={<ProtectedRoute><AppLayout><DashboardAgendas /></AppLayout></ProtectedRoute>} />
             <Route path="/relatorios" element={<ProtectedRoute><AppLayout><Relatorios /></AppLayout></ProtectedRoute>} />
             <Route path="/configuracoes" element={<ProtectedRoute><AppLayout><Configuracoes /></AppLayout></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
