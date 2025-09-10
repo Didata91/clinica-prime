@@ -201,17 +201,17 @@ export default function AgendasLista() {
             <div>
               <Label htmlFor="status">Status</Label>
               <Select
-                value={filters.status || ''}
+                value={filters.status || 'all'}
                 onValueChange={(value) => setFilters(prev => ({ 
                   ...prev, 
-                  status: value as StatusAgenda || undefined
+                  status: value === 'all' ? undefined : value as StatusAgenda
                 }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="all">Todos</SelectItem>
                   {Object.entries(statusLabels).map(([value, label]) => (
                     <SelectItem key={value} value={value}>
                       {label}
@@ -237,17 +237,17 @@ export default function AgendasLista() {
             <div>
               <Label htmlFor="forma_pagamento">Forma Pagamento</Label>
               <Select
-                value={filters.forma_pagamento || ''}
+                value={filters.forma_pagamento || 'all'}
                 onValueChange={(value) => setFilters(prev => ({ 
                   ...prev, 
-                  forma_pagamento: value as FormaPagamento || undefined
+                  forma_pagamento: value === 'all' ? undefined : value as FormaPagamento
                 }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Todas" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas</SelectItem>
+                  <SelectItem value="all">Todas</SelectItem>
                   {Object.entries(formaPagamentoLabels).map(([value, label]) => (
                     <SelectItem key={value} value={value}>
                       {label}
